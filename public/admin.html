@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GBDrop - Admin Panel</title>
+    <title>AuthDrop - Admin Panel</title>
     <style>
         * {
             margin: 0;
@@ -358,7 +358,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🛡️ GBDrop Admin Panel</h1>
+            <h1>🛡️ AuthDrop Admin Panel</h1>
             <div class="header-actions">
                 <span id="currentUser" style="color: #999; margin-right: 15px;"></span>
                 <button class="btn btn-secondary" onclick="window.location.href='/'">App Principale</button>
@@ -575,7 +575,7 @@
                 console.error('Logout error:', error);
             }
             
-            localStorage.removeItem('gbdrop_token');
+            localStorage.removeItem('authdrop_token');
             window.location.href = '/login';
         }
 

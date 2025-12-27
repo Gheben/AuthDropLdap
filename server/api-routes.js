@@ -45,7 +45,7 @@ router.post('/login', async (req, res) => {
         const token = auth.generateToken(user);
 
         // Set cookie (httpOnly for security)
-        res.cookie('gbdrop_token', token, {
+        res.cookie('authdrop_token', token, {
             httpOnly: true,
             maxAge: 24 * 60 * 60 * 1000, // 24 hours
             sameSite: 'strict'
@@ -77,7 +77,7 @@ router.post('/login', async (req, res) => {
  * Logout current user
  */
 router.post('/logout', auth.requireAuth, (req, res) => {
-    res.clearCookie('gbdrop_token');
+    res.clearCookie('authdrop_token');
     res.json({ success: true, message: 'Logout effettuato con successo' });
 });
 

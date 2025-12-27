@@ -1,8 +1,8 @@
 {
-  "name": "gbdrop",
+  "name": "authdrop",
   "version": "1.0.0",
   "type": "module",
-  "description": "GBDrop - Tool per il trasferimento file peer-to-peer",
+  "description": "AuthDrop - Tool per il trasferimento file peer-to-peer con autenticazione",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",

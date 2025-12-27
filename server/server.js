@@ -10,7 +10,7 @@ import apiRoutes from "./api-routes.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export default class GBDropServer {
+export default class AuthDropServer {
 
     constructor(port, conf) {
         this._conf = conf;
@@ -83,7 +83,7 @@ export default class GBDropServer {
 
         this._server = http.createServer(app);
         this._server.listen(port, () => {
-            console.log(`GBDrop is running on port ${port}`);
+            console.log(`AuthDrop is running on port ${port}`);
         });
     }
 

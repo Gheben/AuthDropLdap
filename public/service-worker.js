@@ -1,5 +1,5 @@
 const cacheVersion = 'v1.0.1-auth-rooms';
-const cacheTitle = `gbdrop-cache-${cacheVersion}`;
+const cacheTitle = `authdrop-cache-${cacheVersion}`;
 const relativePathsToCache = [
     './',
     'index.html',
@@ -233,7 +233,7 @@ const evaluateRequestData = function (request) {
         const url = formData.get("url");
         const files = formData.getAll("allfiles");
 
-        const gbDropUrl = request.url;
+        const authDropUrl = request.url;
 
         if (files && files.length > 0) {
             let fileObjects = [];
@@ -244,7 +244,7 @@ const evaluateRequestData = function (request) {
                 });
             }
 
-            const DBOpenRequest = indexedDB.open('gbdrop_store');
+            const DBOpenRequest = indexedDB.open('authdrop_store');
             DBOpenRequest.onsuccess = e => {
                 const db = e.target.result;
                 for (let i = 0; i < fileObjects.length; i++) {
@@ -253,12 +253,12 @@ const evaluateRequestData = function (request) {
 
                     const objectStoreRequest = objectStore.add(fileObjects[i]);
                     objectStoreRequest.onsuccess = _ => {
-                        if (i === fileObjects.length - 1) resolve(gbDropUrl + '?share_target=files');
+                        if (i === fileObjects.length - 1) resolve(authDropUrl + '?share_target=files');
                     }
                 }
             }
             DBOpenRequest.onerror = _ => {
-                resolve(gbDropUrl);
+                resolve(authDropUrl);
             }
         }
         else {
@@ -268,7 +268,7 @@ const evaluateRequestData = function (request) {
             if (text) urlArgument += `&text=${text}`;
             if (url) urlArgument += `&url=${url}`;
 
-            resolve(gbDropUrl + urlArgument);
+            resolve(authDropUrl + urlArgument);
         }
     });
 }

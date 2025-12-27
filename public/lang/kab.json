@@ -22,18 +22,18 @@
         "cancel": "Sefsex"
     },
     "about": {
-        "github_title": "GBDrop deg GitHub",
-        "close-about_aria-label": "Mdel Ɣef GBDrop"
+        "github_title": "AuthDrop deg GitHub",
+        "close-about_aria-label": "Mdel Ɣef AuthDrop"
     },
     "notifications": {
         "connecting": "Tuqqna…",
         "connected": "Yeqqen"
     },
     "header": {
-        "about_aria-label": "Ldi Ɣef GBDrop",
-        "about_title": "Ɣef GBDrop",
+        "about_aria-label": "Ldi Ɣef AuthDrop",
+        "about_title": "Ɣef AuthDrop",
         "language-selector_title": "Fren tutlayt",
-        "install_title": "Sbedd GBDrop",
+        "install_title": "Sbedd AuthDrop",
         "edit-share-mode": "Ẓreg"
     }
 }

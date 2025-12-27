@@ -45,13 +45,13 @@ const configBuilder = (conf) => {
     return conf;
 }
 
-import GBDropServer from "./server.js";
-import GBDropWsServer from "./ws-server.js";
+import AuthDropServer from "./server.js";
+import AuthDropWsServer from "./ws-server.js";
 
 const conf = configBuilder({});
 
-const server = new GBDropServer(conf.port, conf);
-const wsServer = new GBDropWsServer(server.getServer(), conf);
+const server = new AuthDropServer(conf.port, conf);
+const wsServer = new AuthDropWsServer(server.getServer(), conf);
 
 // Handle SIGINT
 process.on('SIGINT', () => {

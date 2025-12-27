@@ -225,7 +225,7 @@ class ServerConnection {
         sessionStorage.setItem('peer_id', msg.peerId);
         sessionStorage.setItem('peer_id_hash', msg.peerIdHash);
 
-        // Add peerId to localStorage to mark it for other GBDrop tabs on the same browser
+        // Add peerId to localStorage to mark it for other AuthDrop tabs on the same browser
         BrowserTabsConnector
             .addPeerIdToLocalStorage()
             .then(peerId => {
@@ -272,14 +272,14 @@ class ServerConnection {
 
     _getToken() {
         // Try to get token from localStorage first
-        let token = localStorage.getItem('gbdrop_token');
+        let token = localStorage.getItem('authdrop_token');
         
         // If not in localStorage, try to get from cookie
         if (!token) {
             const cookies = document.cookie.split(';');
             for (let cookie of cookies) {
                 const [name, value] = cookie.trim().split('=');
-                if (name === 'gbdrop_token') {
+                if (name === 'authdrop_token') {
                     token = value;
                     break;
                 }
@@ -675,7 +675,7 @@ class Peer {
             this._abortTransfer();
         }
 
-        // include for compatibility with 'Snapdrop & GBDrop for Android' app
+        // include for compatibility with 'Snapdrop & AuthDrop for Android' app
         Events.fire('file-received', fileBlob);
 
         this._filesReceived.push(fileBlob);
@@ -693,7 +693,7 @@ class Peer {
         if (!this._filesQueue.length) {
             this._busy = false;
             Events.fire('notify-user', Localization.getTranslation("notifications.file-transfer-completed"));
-            Events.fire('files-sent'); // used by 'Snapdrop & GBDrop for Android' app
+            Events.fire('files-sent'); // used by 'Snapdrop & AuthDrop for Android' app
         }
         else {
             this._dequeueFile();
@@ -1120,7 +1120,7 @@ class PeersManager {
             console.log('WSPeer left:', message.peerId);
         }
         if (message.disconnect === true) {
-            // if user actively disconnected from GBDrop server, disconnect all peer to peer connections immediately
+            // if user actively disconnected from AuthDrop server, disconnect all peer to peer connections immediately
             this._disconnectOrRemoveRoomTypeByPeerId(message.peerId, message.roomType);
 
             // If no peers are connected anymore, we can safely assume that no other tab on the same browser is connected:

@@ -1,9 +1,9 @@
 {
     "header": {
-        "about_title": "Über GBDrop",
+        "about_title": "Über AuthDrop",
         "notification_title": "Benachrichtigungen aktivieren",
-        "about_aria-label": "Über GBDrop öffnen",
-        "install_title": "GBDrop installieren",
+        "about_aria-label": "Über AuthDrop öffnen",
+        "install_title": "AuthDrop installieren",
         "pair-device_title": "Kopple deine Geräte dauerhaft",
         "edit-paired-devices_title": "Gekoppelte Geräte bearbeiten",
         "theme-auto_title": "Systemstil verwenden",
@@ -77,15 +77,15 @@
         "base64-title-text": "Teile Text"
     },
     "about": {
-        "tweet_title": "Über GBDrop twittern",
+        "tweet_title": "Über AuthDrop twittern",
         "faq_title": "Häufig gestellte Fragen",
-        "close-about_aria-label": "Schließe Über GBDrop",
-        "github_title": "GBDrop auf GitHub",
+        "close-about_aria-label": "Schließe Über AuthDrop",
+        "github_title": "AuthDrop auf GitHub",
         "buy-me-a-coffee_title": "Kauf mir einen Kaffee!",
         "claim": "Der einfachste Weg, Dateien zwischen Geräten zu übertragen",
         "bluesky_title": "Folge uns auf BlueSky",
         "privacypolicy_title": "Öffne unsere Datenschutzerklärung",
-        "mastodon_title": "Schreibe über GBDrop auf Mastodon",
+        "mastodon_title": "Schreibe über AuthDrop auf Mastodon",
         "custom_title": "Folge uns"
     },
     "footer": {
@@ -124,7 +124,7 @@
         "notifications-enabled": "Benachrichtigungen aktiviert",
         "offline": "Du bist offline",
         "online": "Du bist wieder Online",
-        "unfinished-transfers-warning": "Es wurden noch nicht alle Übertragungen fertiggestellt. Möchtest du GBDrop wirklich schließen?",
+        "unfinished-transfers-warning": "Es wurden noch nicht alle Übertragungen fertiggestellt. Möchtest du AuthDrop wirklich schließen?",
         "display-name-changed-permanently": "Anzeigename wurde dauerhaft geändert",
         "download-successful": "{{descriptor}} heruntergeladen",
         "pairing-cleared": "Alle Geräte entkoppelt",
@@ -150,7 +150,7 @@
     },
     "instructions": {
         "x-instructions_desktop": "Klicke, um Dateien zu senden oder benutze einen Rechtsklick, um eine Nachricht zu senden",
-        "no-peers-title": "Öffne GBDrop auf anderen Geräten, um Dateien zu senden",
+        "no-peers-title": "Öffne AuthDrop auf anderen Geräten, um Dateien zu senden",
         "no-peers_data-drop-bg": "Hier ablegen, um Empfänger auszuwählen",
         "no-peers-subtitle": "Kopple Geräte oder betritt einen öffentlichen Raum, um in anderen Netzwerken sichtbar zu sein",
         "x-instructions-share-mode_desktop": "Klicke zum Senden {{descriptor}}",
@@ -158,10 +158,10 @@
         "x-instructions_data-drop-peer": "Hier ablegen, um an Peer zu senden",
         "x-instructions_data-drop-bg": "Loslassen um Empfänger auszuwählen",
         "x-instructions_mobile": "Tippe, um Dateien zu senden oder tippe lange, um Nachrichten zu senden",
-        "activate-share-mode-base": "Öffne GBDrop auf anderen Geräten zum Senden",
+        "activate-share-mode-base": "Öffne AuthDrop auf anderen Geräten zum Senden",
         "activate-share-mode-and-other-files-plural": "und {{count}} anderen Dateien",
         "activate-share-mode-shared-text": "des geteilten Texts",
-        "webrtc-requirement": "Um diese GBDrop Instanz zu verwenden muss WebRTC aktiviert sein!",
+        "webrtc-requirement": "Um diese AuthDrop Instanz zu verwenden muss WebRTC aktiviert sein!",
         "activate-share-mode-shared-files-plural": "der {{count}} geteilten Dateien",
         "activate-share-mode-shared-file": "der geteilten Datei",
         "activate-share-mode-and-other-file": "und 1 andere Datei"

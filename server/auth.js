@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import database from './database.js';
 
 // Chiave segreta JWT (in produzione usare variabile d'ambiente)
-const JWT_SECRET = process.env.JWT_SECRET || 'gbdrop-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || 'authdrop-secret-key-change-in-production';
 const JWT_EXPIRES_IN = '24h';
 
 class AuthMiddleware {
@@ -47,8 +47,8 @@ class AuthMiddleware {
             
             if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
                 token = req.headers.authorization.substring(7);
-            } else if (req.cookies && req.cookies.gbdrop_token) {
-                token = req.cookies.gbdrop_token;
+            } else if (req.cookies && req.cookies.authdrop_token) {
+                token = req.cookies.authdrop_token;
             } else if (req.query && req.query.token) {
                 token = req.query.token;
             }
@@ -142,8 +142,8 @@ class AuthMiddleware {
     extractToken(req) {
         if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
             return req.headers.authorization.substring(7);
-        } else if (req.cookies && req.cookies.gbdrop_token) {
-            return req.cookies.gbdrop_token;
+        } else if (req.cookies && req.cookies.authdrop_token) {
+            return req.cookies.authdrop_token;
         } else if (req.query && req.query.token) {
             return req.query.token;
         } else if (req.headers.cookie) {
@@ -153,7 +153,7 @@ class AuthMiddleware {
                 acc[key] = value;
                 return acc;
             }, {});
-            return cookies.gbdrop_token;
+            return cookies.authdrop_token;
         }
         return null;
     }

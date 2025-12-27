@@ -215,7 +215,7 @@ class Localization {
     }
 
     static logHelpCall() {
-        console.log("Help translating GBDrop: https://git.ballarini.app/guido/GBDrop");
+        console.log("Help translating AuthDrop: https://git.ballarini.app/guido/AuthDrop");
     }
 
     static logHelpCallKey(key, attr) {
@@ -225,7 +225,7 @@ class Localization {
             ? key
             : `${key}_${attr}`;
 
-        console.warn(`Translate this string here: https://git.ballarini.app/guido/GBDrop/?q=${keyComplete}`);
+        console.warn(`Translate this string here: https://git.ballarini.app/guido/AuthDrop/?q=${keyComplete}`);
     }
 
     static escapeHTML(unsafeText) {

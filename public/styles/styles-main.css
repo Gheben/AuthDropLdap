@@ -1005,7 +1005,7 @@ body {
     --shadow-color-dialog-cover-rgb: var(--lt-shadow-color-dialog-cover-rgb);
 }
 
-/* Gradiente personalizzato GBDrop Light */
+/* Gradiente personalizzato AuthDrop Light */
 body::before {
     content: '';
     position: fixed;
@@ -1031,7 +1031,7 @@ body.dark-theme {
     --shadow-color-secondary-cover-rgb: var(--dt-shadow-color-secondary-cover-rgb);
 }
 
-/* Gradiente personalizzato GBDrop Dark */
+/* Gradiente personalizzato AuthDrop Dark */
 body.dark-theme::before {
     background: linear-gradient(135deg, #0a2540 0%, #5c2000 100%);
     opacity: 0.85;

@@ -1,4 +1,4 @@
-class GBDrop {
+class AuthDrop {
 
     constructor() {
         // Check authentication before initializing
@@ -165,7 +165,7 @@ class GBDrop {
         
         // Clear token
         console.log('[LOGOUT] 🧹 Removing JWT token...');
-        localStorage.removeItem('gbdrop_token');
+        localStorage.removeItem('authdrop_token');
         
         // Redirect to login
         console.log('[LOGOUT] 🔀 Redirecting to /login');
@@ -423,4 +423,4 @@ class GBDrop {
     }
 }
 
-const gbDrop = new GBDrop();
+const authDrop = new AuthDrop();

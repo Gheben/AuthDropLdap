@@ -9,7 +9,7 @@ const sqlite = sqlite3.verbose();
 
 class Database {
     constructor() {
-        const dbPath = process.env.DB_PATH || path.join(__dirname, '..', 'gbdrop.db');
+        const dbPath = process.env.DB_PATH || path.join(__dirname, '..', 'authdrop.db');
         this.db = new sqlite.Database(dbPath, (err) => {
             if (err) {
                 console.error('Error opening database:', err);

@@ -1,6 +1,6 @@
-# GBDrop
+# AuthDrop
 
-**GBDrop** è un'applicazione web per il trasferimento di file peer-to-peer che funziona direttamente nel browser, senza bisogno di installazione.
+**AuthDrop** è un'applicazione web per il trasferimento di file peer-to-peer che funziona direttamente nel browser, senza bisogno di installazione.
 
 ## Caratteristiche
 
@@ -33,7 +33,7 @@
 
 ```bash
 # Clona o scarica questo repository
-cd gbdrop
+cd AuthDrop
 
 # Installa le dipendenze
 npm install
@@ -56,8 +56,8 @@ npm run dev
 ### Con Docker
 
 ```bash
-docker build -t gbdrop .
-docker run -d --restart=unless-stopped --name=gbdrop -p 127.0.0.1:3000:3000 gbdrop
+docker build -t AuthDrop .
+docker run -d --restart=unless-stopped --name=AuthDrop -p 127.0.0.1:3000:3000 AuthDrop
 ```
 
 ### Con Node.js
@@ -69,7 +69,7 @@ npm run start:prod
 ## Struttura del Progetto
 
 ```
-gbdrop/
+AuthDrop/
 ├── public/           # File frontend (HTML, CSS, JS, immagini)
 ├── server/           # Backend Node.js
 ├── package.json      # Configurazione npm
@@ -78,7 +78,7 @@ gbdrop/
 
 ## Come Funziona
 
-1. Apri GBDrop nel browser su tutti i dispositivi che vuoi connettere
+1. Apri AuthDrop nel browser su tutti i dispositivi che vuoi connettere
 2. I dispositivi sulla stessa rete locale si rilevano automaticamente
 3. Clicca sul dispositivo di destinazione e seleziona i file da inviare
 4. Il trasferimento avviene direttamente tra i dispositivi (P2P)
@@ -89,9 +89,9 @@ gbdrop/
 Puoi accoppiare permanentemente i tuoi dispositivi inserendo una stanza condivisa, anche se sono su reti diverse.
 
 ### Nome Utente Automatico
-GBDrop supporta tre modi per impostare automaticamente il tuo nome:
+AuthDrop supporta tre modi per impostare automaticamente il tuo nome:
 
-1. **Script PowerShell** (Windows): Usa `launch-gbdrop.ps1` per aprire il browser con il tuo nome utente già impostato
+1. **Script PowerShell** (Windows): Usa `launch-AuthDrop.ps1` per aprire il browser con il tuo nome utente già impostato
 2. **Parametro URL**: Apri `http://localhost:3000?username=TuoNome`
 3. **Bookmarklet**: Salva un segnalibro per impostare il nome con un click
 
@@ -113,7 +113,7 @@ Sì, usando la funzione di accoppiamento con codice stanza condiviso.
 
 ## Autore
 
-Guido Ballarini - [git.ballarini.app](https://git.ballarini.app/guido/GBDrop)
+Guido Ballarini - [git.ballarini.app](https://git.ballarini.app/guido/AuthDrop)
 
 ## Licenza
 

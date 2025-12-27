@@ -6,7 +6,7 @@ import {hasher, randomizer} from "./helper.js";
 import auth from "./auth.js";
 import database from "./database.js";
 
-export default class GBDropWsServer {
+export default class AuthDropWsServer {
 
     constructor(server, conf) {
         this._conf = conf

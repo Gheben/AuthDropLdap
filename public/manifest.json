@@ -1,6 +1,6 @@
 {
-    "name": "GBDrop",
-    "short_name": "GBDrop",
+    "name": "AuthDrop",
+    "short_name": "AuthDrop",
     "icons": [
         {
             "src": "images/android-chrome-192x192.png",
