@@ -329,7 +329,7 @@ export default class AuthDropWsServer {
         let pairKey;
         do {
             // get randomInt until keyRoom not occupied
-            pairKey = crypto.randomInt(100000, 199999).toString().substring(1); // include numbers with leading 0s
+            pairKey = crypto.randomInt(100000, 1000000).toString(); // genera numero a 6 cifre (100000-999999)
         } while (pairKey in this._roomSecrets)
 
         this._roomSecrets[pairKey] = {
