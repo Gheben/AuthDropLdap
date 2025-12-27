@@ -10,8 +10,8 @@ services:
     ports:
       - "3441:3441"
     volumes:
-      # Persisti il database SQLite su Synology
-      - /volume1/docker/authdrop/data:/home/node/app
+      # Usa un named volume per persistere il database SQLite
+      - authdrop-data:/home/node/app
     environment:
       - NODE_ENV=production
       - PORT=3441
@@ -28,3 +28,7 @@ services:
 networks:
   authdrop-network:
     driver: bridge
+
+volumes:
+  authdrop-data:
+    driver: local
