@@ -480,6 +480,7 @@ class Database {
                     user_id INTEGER NOT NULL,
                     is_group_admin BOOLEAN DEFAULT FALSE,
                     joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                       added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
                     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                     UNIQUE(group_id, user_id)
