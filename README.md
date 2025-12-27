@@ -1,5 +1,22 @@
 # AuthDrop
 
+<div align="center">
+
+![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)
+![Express](https://img.shields.io/badge/Express-4.x-blue.svg)
+![SQLite3](https://img.shields.io/badge/SQLite3-Latest-lightblue.svg)
+![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
+![Platform](https://img.shields.io/badge/Platform-Windows%20|%20Linux%20|%20macOS-lightgrey.svg)
+
+**Un'applicazione web moderna per il trasferimento di file peer-to-peer direttamente nel browser**
+
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Support%20-yellow.svg?logo=buy-me-a-coffee&logoColor=white)](https://buymeacoffee.com/guidoballau)
+
+</div>
+
+---
+
 **AuthDrop** è un'applicazione web per il trasferimento di file peer-to-peer che funziona direttamente nel browser, senza bisogno di installazione.
 
 ## Caratteristiche
