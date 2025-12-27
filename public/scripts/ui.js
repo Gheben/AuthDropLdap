@@ -84,7 +84,7 @@ class PeersUI {
             await this._deactivateShareMode();
         }
 
-        // close About PairDrop page on Escape
+        // close About GBDrop page on Escape
         if (e.key === "Escape") {
             window.location.hash = '#';
         }
