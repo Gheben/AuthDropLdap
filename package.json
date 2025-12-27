@@ -1,0 +1,25 @@
+{
+  "name": "gbdrop",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "GBDrop - Tool per il trasferimento file peer-to-peer",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "start:prod": "node server/index.js --rate-limit --auto-restart",
+    "dev": "node server/index.js"
+  },
+  "keywords": ["file-sharing", "peer-to-peer", "webrtc", "nodejs"],
+  "author": "GBallari",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "ua-parser-js": "^1.0.37",
+    "unique-names-generator": "^4.3.0",
+    "ws": "^8.16.0"
+  },
+  "engines": {
+    "node": ">=15"
+  }
+}
