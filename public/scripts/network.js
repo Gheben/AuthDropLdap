@@ -261,7 +261,32 @@ class ServerConnection {
             wsUrl.searchParams.append('peer_id_hash', peerIdHash);
         }
 
+        // Add JWT token from cookie or localStorage
+        const token = this._getToken();
+        if (token) {
+            wsUrl.searchParams.append('token', token);
+        }
+
         return wsUrl.toString();
+    }
+
+    _getToken() {
+        // Try to get token from localStorage first
+        let token = localStorage.getItem('gbdrop_token');
+        
+        // If not in localStorage, try to get from cookie
+        if (!token) {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'gbdrop_token') {
+                    token = value;
+                    break;
+                }
+            }
+        }
+        
+        return token;
     }
 
     _disconnect() {

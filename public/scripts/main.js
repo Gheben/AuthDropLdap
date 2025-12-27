@@ -1,6 +1,178 @@
 class GBDrop {
 
     constructor() {
+        // Check authentication before initializing
+        this.checkAuth().then(authenticated => {
+            if (!authenticated) {
+                window.location.href = '/login';
+                return;
+            }
+            
+            // User is authenticated, proceed with initialization
+            this.init();
+        });
+    }
+
+    async checkAuth() {
+        try {
+            console.log('Checking authentication...');
+            const response = await fetch('/api/me', {
+                credentials: 'include'
+            });
+
+            console.log('Auth response status:', response.status);
+
+            if (!response.ok) {
+                console.log('Authentication failed: response not OK');
+                return false;
+            }
+
+            const data = await response.json();
+            console.log('Auth response data:', data);
+            
+            if (!data.success || !data.user) {
+                console.log('Authentication failed: no user data');
+                return false;
+            }
+
+            // Store user info
+            window.currentUser = data.user;
+            console.log('Authenticated as:', data.user.username);
+            
+            // Load user's rooms from database and sync to IndexedDB
+            await this.syncUserRoomsFromDatabase();
+            
+            // Show admin button if user is admin
+            if (data.user.isAdmin) {
+                const adminBtn = document.getElementById('admin-panel-btn');
+                if (adminBtn) {
+                    adminBtn.removeAttribute('hidden');
+                }
+            }
+            
+            // Show logout button for all authenticated users
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.removeAttribute('hidden');
+                logoutBtn.addEventListener('click', this.logout.bind(this));
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('Auth check error:', error);
+            return false;
+        }
+    }
+
+    async syncUserRoomsFromDatabase() {
+        try {
+            console.log('[SYNC] 🔄 Starting room synchronization from database...');
+            
+            // Check if PersistentStorage is available
+            if (typeof PersistentStorage === 'undefined') {
+                console.error('[SYNC] ❌ PersistentStorage not available yet');
+                return;
+            }
+            
+            // Clear existing room secrets from IndexedDB
+            console.log('[SYNC] 🧹 Clearing IndexedDB...');
+            await PersistentStorage.clearRoomSecrets();
+            console.log('[SYNC] ✅ IndexedDB cleared');
+            
+            // Load user's rooms from database
+            console.log('[SYNC] 📡 Fetching rooms from /api/me/rooms...');
+            const response = await fetch('/api/me/rooms', {
+                credentials: 'include'
+            });
+
+            console.log('[SYNC] Response status:', response.status);
+            if (!response.ok) {
+                console.error('[SYNC] ❌ Failed to load user rooms - status:', response.status);
+                return;
+            }
+
+            const data = await response.json();
+            console.log('[SYNC] 📦 Received data:', data);
+            console.log('[SYNC] 📊 Number of rooms:', data.rooms ? data.rooms.length : 0);
+
+            // Add each room to IndexedDB and restore public room to sessionStorage
+            if (data.rooms && data.rooms.length > 0) {
+                console.log('[SYNC] 💾 Adding rooms to IndexedDB...');
+                for (const room of data.rooms) {
+                    console.log(`[SYNC]   - Adding room: ${room.room_secret.substring(0, 20)}... (${room.room_name || 'Stanza privata'})`);
+                    
+                    // Check if this is a public room (5 characters) or device pairing (long secret)
+                    if (room.room_secret.length <= 10) {
+                        // This is a public room - restore to sessionStorage
+                        console.log(`[SYNC] 🏠 Restoring public room to sessionStorage: ${room.room_secret}`);
+                        sessionStorage.setItem('public_room_id', room.room_secret);
+                        
+                        // Add to IndexedDB for persistency
+                        await PersistentStorage.addRoomSecret(
+                            room.room_secret,
+                            room.room_name || `Gruppo pubblico: ${room.room_secret}`,
+                            ''
+                        );
+                        
+                        // Trigger joining the public room
+                        console.log(`[SYNC] 🔗 Rejoining public room: ${room.room_secret}`);
+                        Events.fire('join-public-room', {
+                            roomId: room.room_secret,
+                            createIfInvalid: false
+                        });
+                    } else {
+                        // This is a device pairing secret
+                        await PersistentStorage.addRoomSecret(
+                            room.room_secret,
+                            room.room_name || 'Stanza privata',
+                            ''  // deviceName - non disponibile dal database
+                        );
+                    }
+                }
+                console.log(`[SYNC] ✅ Successfully synced ${data.rooms.length} room(s) to IndexedDB`);
+            } else {
+                console.log('[SYNC] ℹ️ No rooms to sync');
+            }
+        } catch (error) {
+            console.error('[SYNC] ❌ Error syncing user rooms:', error);
+        }
+    }
+
+    async logout() {
+        try {
+            console.log('[LOGOUT] 🚪 Starting logout process...');
+            
+            // Clear all room secrets from IndexedDB
+            console.log('[LOGOUT] 🧹 Clearing room secrets from IndexedDB...');
+            await PersistentStorage.clearRoomSecrets();
+            console.log('[LOGOUT] ✅ Room secrets cleared');
+            
+            // Clear session storage (peer IDs)
+            console.log('[LOGOUT] 🧹 Clearing sessionStorage...');
+            sessionStorage.clear();
+            console.log('[LOGOUT] ✅ SessionStorage cleared');
+            
+            // Call logout API
+            console.log('[LOGOUT] 📡 Calling logout API...');
+            await fetch('/api/logout', {
+                method: 'POST',
+                credentials: 'include'
+            });
+            console.log('[LOGOUT] ✅ Logout API called');
+        } catch (error) {
+            console.error('[LOGOUT] ❌ Logout error:', error);
+        }
+        
+        // Clear token
+        console.log('[LOGOUT] 🧹 Removing JWT token...');
+        localStorage.removeItem('gbdrop_token');
+        
+        // Redirect to login
+        console.log('[LOGOUT] 🔀 Redirecting to /login');
+        window.location.href = '/login';
+    }
+
+    init() {
         this.$headerNotificationBtn = $('notification');
         this.$headerEditPairedDevicesBtn = $('edit-paired-devices');
         this.$footerPairedDevicesBadge = $$('.discovery-wrapper .badge-room-secret');
@@ -99,9 +271,14 @@ class GBDrop {
         }
 
         let roomSecrets = await PersistentStorage.getAllRoomSecrets();
-        if (roomSecrets.length > 0) {
-            this.$headerEditPairedDevicesBtn.removeAttribute('hidden');
-            this.$footerPairedDevicesBadge.removeAttribute('hidden');
+        // Filter only device pairing secrets (long hash strings, not public room codes)
+        // Public room codes are 5 characters, device secrets are 256+ characters
+        if (roomSecrets && roomSecrets.length > 0) {
+            let devicePairingSecrets = roomSecrets.filter(secret => secret.length > 10);
+            if (devicePairingSecrets.length > 0) {
+                this.$headerEditPairedDevicesBtn.removeAttribute('hidden');
+                this.$footerPairedDevicesBadge.removeAttribute('hidden');
+            }
         }
     }
 
@@ -227,6 +404,14 @@ class GBDrop {
             }
             else if (init === "public_room") {
                 this.publicRoomDialog._createPublicRoom();
+            }
+        }
+        else {
+            // No URL params - check if there's a public room in sessionStorage to rejoin
+            const publicRoomId = sessionStorage.getItem('public_room_id');
+            if (publicRoomId) {
+                console.log(`[REJOIN] 🔄 Rejoining public room from sessionStorage: ${publicRoomId}`);
+                this.publicRoomDialog._joinPublicRoom(publicRoomId, false);
             }
         }
 

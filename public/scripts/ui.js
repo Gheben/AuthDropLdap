@@ -1569,7 +1569,11 @@ class EditPairedDevicesDialog extends Dialog {
         const autoAcceptString = Localization.getTranslation("dialogs.auto-accept").toLowerCase();
         const roomSecretsEntries = await PersistentStorage.getAllRoomSecretEntries();
 
-        roomSecretsEntries
+        // Filter only device pairing secrets (long hash strings, not public room codes)
+        // Public room codes are 5 characters, device secrets are 256+ characters
+        const devicePairingEntries = roomSecretsEntries.filter(entry => entry.secret && entry.secret.length > 10);
+
+        devicePairingEntries
             .forEach(roomSecretsEntry => {
                 let $pairedDevice = document.createElement('div');
                 $pairedDevice.classList.add("paired-device");
@@ -1614,14 +1618,31 @@ class EditPairedDevicesDialog extends Dialog {
 
                 $pairedDevice
                     .querySelector('button')
-                    .addEventListener('click', e => {
-                        PersistentStorage
-                            .deleteRoomSecret(roomSecretsEntry.secret)
-                            .then(roomSecret => {
-                                Events.fire('room-secrets-deleted', [roomSecret]);
-                                Events.fire('evaluate-number-room-secrets');
-                                $pairedDevice.innerText = "";
+                    .addEventListener('click', async e => {
+                        try {
+                            // Delete from IndexedDB
+                            await PersistentStorage.deleteRoomSecret(roomSecretsEntry.secret);
+                            
+                            // Delete from server database
+                            console.log('[UNPAIR] Deleting room from server:', roomSecretsEntry.secret.substring(0, 20) + '...');
+                            const response = await fetch(`/api/me/rooms/${encodeURIComponent(roomSecretsEntry.secret)}`, {
+                                method: 'DELETE',
+                                credentials: 'include'
                             });
+                            
+                            if (response.ok) {
+                                console.log('[UNPAIR] ✅ Room deleted from server');
+                            } else {
+                                console.error('[UNPAIR] ❌ Failed to delete room from server:', response.status);
+                            }
+                            
+                            // Update UI
+                            Events.fire('room-secrets-deleted', [roomSecretsEntry.secret]);
+                            Events.fire('evaluate-number-room-secrets');
+                            $pairedDevice.innerText = "";
+                        } catch (error) {
+                            console.error('[UNPAIR] ❌ Error deleting room:', error);
+                        }
                     })
 
                 this.$pairedDevicesWrapper.appendChild($pairedDevice)
@@ -1872,8 +1893,35 @@ class PublicRoomDialog extends Dialog {
         }
     }
 
-    _leavePublicRoom() {
-        Events.fire('leave-public-room', this.roomId);
+    async _leavePublicRoom() {
+        const roomId = this.roomId;
+        
+        // Delete from server database
+        try {
+            console.log(`[LEAVE] 🗑️ Deleting room from server: ${roomId}`);
+            const response = await fetch(`/api/me/rooms/${encodeURIComponent(roomId)}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            
+            if (response.ok) {
+                console.log(`[LEAVE] ✅ Room deleted from server successfully`);
+            } else {
+                console.error(`[LEAVE] ❌ Failed to delete room from server:`, response.status);
+            }
+        } catch (error) {
+            console.error(`[LEAVE] ❌ Error deleting room from server:`, error);
+        }
+        
+        // Delete from IndexedDB
+        try {
+            await PersistentStorage.deleteRoomSecret(roomId);
+            console.log(`[LEAVE] ✅ Room deleted from IndexedDB`);
+        } catch (error) {
+            console.error(`[LEAVE] ❌ Error deleting room from IndexedDB:`, error);
+        }
+        
+        Events.fire('leave-public-room', roomId);
     }
 
     _onPublicRoomLeft() {
@@ -2413,17 +2461,23 @@ class AboutUI {
     }
 
     async _onConfig(btnConfig) {
-        await this._evaluateBtnConfig(this.$donationBtn, btnConfig.donation_button);
-        await this._evaluateBtnConfig(this.$twitterBtn, btnConfig.twitter_button);
-        await this._evaluateBtnConfig(this.$mastodonBtn, btnConfig.mastodon_button);
-        await this._evaluateBtnConfig(this.$blueskyBtn, btnConfig.bluesky_button);
-        await this._evaluateBtnConfig(this.$customBtn, btnConfig.custom_button);
-        await this._evaluateBtnConfig(this.$privacypolicyBtn, btnConfig.privacypolicy_button);
+        // Check if btnConfig is defined
+        if (!btnConfig) {
+            console.warn('[AboutUI] Button config is undefined, using defaults');
+            btnConfig = {};
+        }
+        
+        await this._evaluateBtnConfig(this.$donationBtn, btnConfig.donation_button || {});
+        await this._evaluateBtnConfig(this.$twitterBtn, btnConfig.twitter_button || {});
+        await this._evaluateBtnConfig(this.$mastodonBtn, btnConfig.mastodon_button || {});
+        await this._evaluateBtnConfig(this.$blueskyBtn, btnConfig.bluesky_button || {});
+        await this._evaluateBtnConfig(this.$customBtn, btnConfig.custom_button || {});
+        await this._evaluateBtnConfig(this.$privacypolicyBtn, btnConfig.privacypolicy_button || {});
     }
 
     async _evaluateBtnConfig($btn, config) {
         // if config is not set leave everything as default
-        if (!Object.keys(config).length) return;
+        if (!config || !Object.keys(config).length) return;
 
         if (config.active === "false") {
             $btn.setAttribute('hidden', true);

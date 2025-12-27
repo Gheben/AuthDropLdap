@@ -3,6 +3,9 @@ import http from "http";
 import rateLimit from "express-rate-limit";
 import path from "path";
 import { fileURLToPath } from 'url';
+import cookieParser from "cookie-parser";
+import database from "./database.js";
+import apiRoutes from "./api-routes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,6 +15,17 @@ export default class GBDropServer {
     constructor(port, conf) {
         this._conf = conf;
         const app = express();
+
+        // Initialize database
+        database.initialize().catch(err => {
+            console.error('Failed to initialize database:', err);
+            process.exit(1);
+        });
+
+        // Middleware
+        app.use(express.json());
+        app.use(express.urlencoded({ extended: true }));
+        app.use(cookieParser());
 
         if (this._conf.rateLimit) {
             const limiter = rateLimit({
@@ -24,14 +38,27 @@ export default class GBDropServer {
             console.log("Rate limiting disabled.");
         }
 
+        // API routes
+        app.use('/api', apiRoutes);
+
         // Serve static files
         const publicPath = path.join(__dirname, '..', 'public');
         app.use(express.static(publicPath));
 
+        // Serve HTML pages without .html extension
+        app.get("/login", (_, res) => {
+            res.sendFile(path.join(publicPath, 'login.html'));
+        });
+
+        app.get("/admin", (_, res) => {
+            res.sendFile(path.join(publicPath, 'admin.html'));
+        });
+
         // Endpoint to get rtc-config and buttons from env variable
         app.get("/config", (_, res) => {
             res.json({
-                "buttons": this._conf.buttons
+                "rtcConfig": this._conf.rtcConfig || null,
+                "buttons": this._conf.buttons || {}
             });
         });
 

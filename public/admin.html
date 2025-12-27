@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="it" class="dark-theme">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GBDrop - Admin Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #0a2540 0%, #5c2000 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(26, 26, 26, 0.95);
+            border-radius: 12px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(64, 64, 64, 0.6);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, #1976D2 0%, #FF6F00 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #1976D2 0%, #FF6F00 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(64, 64, 64, 0.6);
+            color: #f5f5f5;
+            border: 1px solid rgba(100, 100, 100, 0.6);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(80, 80, 80, 0.8);
+        }
+
+        .btn-danger {
+            background: rgba(211, 47, 47, 0.8);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: rgba(211, 47, 47, 1);
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+
+        .tabs {
+            background: rgba(26, 26, 26, 0.95);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(64, 64, 64, 0.6);
+            display: flex;
+            gap: 10px;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            color: #999;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .tab:hover {
+            background: rgba(64, 64, 64, 0.4);
+            color: #f5f5f5;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #1976D2 0%, #FF6F00 100%);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .panel {
+            background: rgba(26, 26, 26, 0.95);
+            border-radius: 12px;
+            padding: 25px;
+            border: 1px solid rgba(64, 64, 64, 0.6);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .panel-header h2 {
+            font-size: 1.4rem;
+            color: #f5f5f5;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        thead {
+            background: rgba(10, 10, 10, 0.6);
+        }
+
+        th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #ccc;
+            border-bottom: 2px solid rgba(64, 64, 64, 0.8);
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(64, 64, 64, 0.4);
+        }
+
+        tbody tr:hover {
+            background: rgba(64, 64, 64, 0.2);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: rgba(76, 175, 80, 0.2);
+            color: #81c784;
+            border: 1px solid rgba(76, 175, 80, 0.4);
+        }
+
+        .badge-danger {
+            background: rgba(211, 47, 47, 0.2);
+            color: #e57373;
+            border: 1px solid rgba(211, 47, 47, 0.4);
+        }
+
+        .badge-info {
+            background: rgba(25, 118, 210, 0.2);
+            color: #64b5f6;
+            border: 1px solid rgba(25, 118, 210, 0.4);
+        }
+
+        .badge-warning {
+            background: rgba(255, 111, 0, 0.2);
+            color: #ffb74d;
+            border: 1px solid rgba(255, 111, 0, 0.4);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: rgba(26, 26, 26, 0.98);
+            border-radius: 12px;
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            border: 1px solid rgba(64, 64, 64, 0.8);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            font-size: 1.4rem;
+            color: #f5f5f5;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #999;
+            font-size: 1.8rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: #f5f5f5;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ccc;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(10, 10, 10, 0.8);
+            border: 1px solid rgba(64, 64, 64, 0.8);
+            border-radius: 8px;
+            color: #f5f5f5;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #1976D2;
+            box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 15px;
+            opacity: 0.4;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        .alert-error {
+            background: rgba(211, 47, 47, 0.15);
+            border: 1px solid rgba(211, 47, 47, 0.4);
+            color: #ef5350;
+        }
+
+        .alert-success {
+            background: rgba(76, 175, 80, 0.15);
+            border: 1px solid rgba(76, 175, 80, 0.4);
+            color: #81c784;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ GBDrop Admin Panel</h1>
+            <div class="header-actions">
+                <span id="currentUser" style="color: #999; margin-right: 15px;"></span>
+                <button class="btn btn-secondary" onclick="window.location.href='/'">App Principale</button>
+                <button class="btn btn-danger" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('users')">👥 Utenti</button>
+            <button class="tab" onclick="switchTab('groups')">📁 Gruppi</button>
+        </div>
+
+        <!-- Users Tab -->
+        <div id="users-tab" class="tab-content active">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Gestione Utenti</h2>
+                    <button class="btn btn-primary" onclick="showCreateUserModal()">+ Nuovo Utente</button>
+                </div>
+                
+                <div id="usersContent" class="loading">Caricamento utenti...</div>
+            </div>
+        </div>
+
+        <!-- Groups Tab -->
+        <div id="groups-tab" class="tab-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Gestione Gruppi</h2>
+                    <button class="btn btn-primary" onclick="showCreateGroupModal()">+ Nuovo Gruppo</button>
+                </div>
+                
+                <div id="groupsContent" class="loading">Caricamento gruppi...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create/Edit User Modal -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="userModalTitle">Nuovo Utente</h3>
+                <button class="modal-close" onclick="closeUserModal()">&times;</button>
+            </div>
+            <form id="userForm">
+                <input type="hidden" id="userId" name="userId">
+                
+                <div class="form-group">
+                    <label for="username">Username *</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+
+                <div class="form-group" id="passwordGroup">
+                    <label for="password">Password *</label>
+                    <input type="password" id="password" name="password">
+                </div>
+
+                <div class="form-group">
+                    <label for="displayName">Nome Visualizzato</label>
+                    <input type="text" id="displayName" name="displayName">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email">
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="isAdmin" name="isAdmin">
+                        <label for="isAdmin" style="margin: 0;">Administrator</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="isActive" name="isActive" checked>
+                        <label for="isActive" style="margin: 0;">Account Attivo</label>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 25px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Salva</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeUserModal()">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create/Edit Group Modal -->
+    <div id="groupModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="groupModalTitle">Nuovo Gruppo</h3>
+                <button class="modal-close" onclick="closeGroupModal()">&times;</button>
+            </div>
+            <form id="groupForm">
+                <input type="hidden" id="groupId" name="groupId">
+                
+                <div class="form-group">
+                    <label for="groupName">Nome Gruppo *</label>
+                    <input type="text" id="groupName" name="groupName" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="groupDescription">Descrizione</label>
+                    <textarea id="groupDescription" name="groupDescription" rows="3"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="parentGroupId">Gruppo Padre (opzionale)</label>
+                    <select id="parentGroupId" name="parentGroupId">
+                        <option value="">Nessuno (gruppo principale)</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 25px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Salva</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeGroupModal()">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Manage Group Members Modal -->
+    <div id="membersModal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3 id="membersModalTitle">Membri Gruppo</h3>
+                <button class="modal-close" onclick="closeMembersModal()">&times;</button>
+            </div>
+            
+            <input type="hidden" id="currentGroupId">
+            
+            <div class="form-group">
+                <label for="addMemberSelect">Aggiungi Utente al Gruppo</label>
+                <div style="display: flex; gap: 10px;">
+                    <select id="addMemberSelect" style="flex: 1;">
+                        <option value="">Seleziona utente...</option>
+                    </select>
+                    <button type="button" class="btn btn-primary" onclick="addMember()">Aggiungi</button>
+                </div>
+            </div>
+
+            <div id="membersListContent" class="loading">Caricamento membri...</div>
+        </div>
+    </div>
+
+    <!-- User Details Modal -->
+    <div id="userDetailsModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3 id="userDetailsTitle">Dettagli Utente</h3>
+                <button class="modal-close" onclick="closeUserDetailsModal()">&times;</button>
+            </div>
+            
+            <div id="userDetailsContent" class="loading">Caricamento...</div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let allUsers = [];
+        let allGroups = [];
+
+        // Check authentication on load
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch('/api/me', {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    window.location.href = '/login';
+                    return;
+                }
+
+                const data = await response.json();
+                currentUser = data.user;
+
+                if (!currentUser.isAdmin) {
+                    alert('Accesso negato. Solo gli amministratori possono accedere a questa pagina.');
+                    window.location.href = '/';
+                    return;
+                }
+
+                document.getElementById('currentUser').textContent = `👤 ${currentUser.displayName || currentUser.username}`;
+
+                // Load data
+                await loadUsers();
+                await loadGroups();
+            } catch (error) {
+                console.error('Auth check error:', error);
+                window.location.href = '/login';
+            }
+        });
+
+        async function logout() {
+            try {
+                // Clear all room secrets from IndexedDB
+                if (window.PersistentStorage) {
+                    await PersistentStorage.clearRoomSecrets();
+                }
+                
+                // Clear session storage
+                sessionStorage.clear();
+                
+                // Call logout API
+                await fetch('/api/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+            
+            localStorage.removeItem('gbdrop_token');
+            window.location.href = '/login';
+        }
+
+        function switchTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById(tab + '-tab').classList.add('active');
+
+            // Reload data if needed
+            if (tab === 'users') {
+                loadUsers();
+            } else if (tab === 'groups') {
+                loadGroups();
+            }
+        }
+
+        // ==================== USERS ====================
+
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/users', {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) throw new Error('Failed to load users');
+
+                const data = await response.json();
+                allUsers = data.users;
+
+                renderUsers(allUsers);
+            } catch (error) {
+                console.error('Load users error:', error);
+                document.getElementById('usersContent').innerHTML = 
+                    '<div class="alert alert-error">Errore nel caricamento utenti</div>';
+            }
+        }
+
+        function renderUsers(users) {
+            const content = document.getElementById('usersContent');
+
+            if (users.length === 0) {
+                content.innerHTML = '<div class="empty-state">Nessun utente trovato</div>';
+                return;
+            }
+
+            const table = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Nome</th>
+                            <th>Email</th>
+                            <th>Ruolo</th>
+                            <th>Stato</th>
+                            <th style="text-align: center;">Dispositivi</th>
+                            <th style="text-align: center;">Stanze</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${users.map(user => `
+                            <tr>
+                                <td><strong>${user.username}</strong></td>
+                                <td>${user.displayName || '-'}</td>
+                                <td>${user.email || '-'}</td>
+                                <td>
+                                    ${user.isSuperAdmin ? '<span class="badge badge-danger">Super Admin</span>' : ''}
+                                    ${user.isAdmin && !user.isSuperAdmin ? '<span class="badge badge-warning">Admin</span>' : ''}
+                                    ${!user.isAdmin ? '<span class="badge badge-info">User</span>' : ''}
+                                </td>
+                                <td>
+                                    ${user.isActive 
+                                        ? '<span class="badge badge-success">Attivo</span>' 
+                                        : '<span class="badge badge-danger">Disattivo</span>'}
+                                </td>
+                                <td style="text-align: center;">
+                                    ${user.deviceCount > 0 
+                                        ? `<span style="cursor: pointer;" onclick="showUserDetails(${user.id})" title="${user.deviceCount} dispositivo/i">📱 ${user.deviceCount}</span>` 
+                                        : '<span style="color: #666;">-</span>'}
+                                </td>
+                                <td style="text-align: center;">
+                                    ${user.roomCount > 0 
+                                        ? `<span style="cursor: pointer;" onclick="showUserDetails(${user.id})" title="${user.roomCount} stanza/e">🏠 ${user.roomCount}</span>` 
+                                        : '<span style="color: #666;">-</span>'}
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn btn-secondary btn-small" onclick="showUserDetails(${user.id})" title="Dettagli">ℹ️</button>
+                                        <button class="btn btn-secondary btn-small" onclick="editUser(${user.id})">Modifica</button>
+                                        ${!user.isSuperAdmin ? `<button class="btn btn-danger btn-small" onclick="deleteUser(${user.id}, '${user.username}')">Elimina</button>` : ''}
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            content.innerHTML = table;
+        }
+
+        function showCreateUserModal() {
+            document.getElementById('userModalTitle').textContent = 'Nuovo Utente';
+            document.getElementById('userForm').reset();
+            document.getElementById('userId').value = '';
+            document.getElementById('password').required = true;
+            document.getElementById('passwordGroup').querySelector('label').textContent = 'Password *';
+            document.getElementById('isActive').checked = true;
+            document.getElementById('userModal').classList.add('show');
+        }
+
+        async function editUser(userId) {
+            const user = allUsers.find(u => u.id === userId);
+            if (!user) return;
+
+            document.getElementById('userModalTitle').textContent = 'Modifica Utente';
+            document.getElementById('userId').value = user.id;
+            document.getElementById('username').value = user.username;
+            document.getElementById('displayName').value = user.displayName || '';
+            document.getElementById('email').value = user.email || '';
+            document.getElementById('isAdmin').checked = user.isAdmin;
+            document.getElementById('isActive').checked = user.isActive;
+            
+            // Password not required for edit
+            document.getElementById('password').value = '';
+            document.getElementById('password').required = false;
+            document.getElementById('passwordGroup').querySelector('label').textContent = 'Password (lascia vuoto per non modificare)';
+            
+            document.getElementById('userModal').classList.add('show');
+        }
+
+        async function deleteUser(userId, username) {
+            if (!confirm(`Sei sicuro di voler eliminare l'utente "${username}"?`)) return;
+
+            try {
+                const response = await fetch(`/api/users/${userId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Utente eliminato con successo');
+                    await loadUsers();
+                } else {
+                    alert(data.error || 'Errore nell\'eliminazione utente');
+                }
+            } catch (error) {
+                console.error('Delete user error:', error);
+                alert('Errore nell\'eliminazione utente');
+            }
+        }
+
+        function closeUserModal() {
+            document.getElementById('userModal').classList.remove('show');
+        }
+
+        document.getElementById('userForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const userId = document.getElementById('userId').value;
+            const isEdit = !!userId;
+
+            const userData = {
+                username: document.getElementById('username').value.trim(),
+                displayName: document.getElementById('displayName').value.trim() || null,
+                email: document.getElementById('email').value.trim() || null,
+                isAdmin: document.getElementById('isAdmin').checked,
+                isActive: document.getElementById('isActive').checked
+            };
+
+            const password = document.getElementById('password').value;
+            if (password) {
+                userData.password = password;
+            }
+
+            try {
+                const url = isEdit ? `/api/users/${userId}` : '/api/users';
+                const method = isEdit ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify(userData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(data.message || 'Utente salvato con successo');
+                    closeUserModal();
+                    await loadUsers();
+                } else {
+                    alert(data.error || 'Errore nel salvataggio utente');
+                }
+            } catch (error) {
+                console.error('Save user error:', error);
+                alert('Errore nel salvataggio utente');
+            }
+        });
+
+        // ==================== GROUPS ====================
+
+        async function loadGroups() {
+            try {
+                const response = await fetch('/api/groups', {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) throw new Error('Failed to load groups');
+
+                const data = await response.json();
+                allGroups = data.groups;
+
+                renderGroups(allGroups);
+            } catch (error) {
+                console.error('Load groups error:', error);
+                document.getElementById('groupsContent').innerHTML = 
+                    '<div class="alert alert-error">Errore nel caricamento gruppi</div>';
+            }
+        }
+
+        function renderGroups(groups) {
+            const content = document.getElementById('groupsContent');
+
+            if (groups.length === 0) {
+                content.innerHTML = '<div class="empty-state">Nessun gruppo trovato</div>';
+                return;
+            }
+
+            const table = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Descrizione</th>
+                            <th>Gruppo Padre</th>
+                            <th>Creato</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${groups.map(group => {
+                            const parentGroup = groups.find(g => g.id === group.parent_group_id);
+                            return `
+                                <tr>
+                                    <td><strong>${group.name}</strong></td>
+                                    <td>${group.description || '-'}</td>
+                                    <td>${parentGroup ? parentGroup.name : '-'}</td>
+                                    <td>${new Date(group.created_at).toLocaleDateString('it-IT')}</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn btn-secondary btn-small" onclick="manageMembers(${group.id}, '${group.name}')">Membri</button>
+                                            <button class="btn btn-secondary btn-small" onclick="editGroup(${group.id})">Modifica</button>
+                                            <button class="btn btn-danger btn-small" onclick="deleteGroup(${group.id}, '${group.name}')">Elimina</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            content.innerHTML = table;
+        }
+
+        function showCreateGroupModal() {
+            document.getElementById('groupModalTitle').textContent = 'Nuovo Gruppo';
+            document.getElementById('groupForm').reset();
+            document.getElementById('groupId').value = '';
+            
+            // Populate parent group dropdown
+            populateParentGroupDropdown();
+            
+            document.getElementById('groupModal').classList.add('show');
+        }
+
+        async function editGroup(groupId) {
+            const group = allGroups.find(g => g.id === groupId);
+            if (!group) return;
+
+            document.getElementById('groupModalTitle').textContent = 'Modifica Gruppo';
+            document.getElementById('groupId').value = group.id;
+            document.getElementById('groupName').value = group.name;
+            document.getElementById('groupDescription').value = group.description || '';
+            
+            populateParentGroupDropdown(group.id);
+            document.getElementById('parentGroupId').value = group.parent_group_id || '';
+            
+            document.getElementById('groupModal').classList.add('show');
+        }
+
+        function populateParentGroupDropdown(excludeGroupId = null) {
+            const select = document.getElementById('parentGroupId');
+            select.innerHTML = '<option value="">Nessuno (gruppo principale)</option>';
+
+            allGroups
+                .filter(g => g.id !== excludeGroupId)
+                .forEach(group => {
+                    const option = document.createElement('option');
+                    option.value = group.id;
+                    option.textContent = group.name;
+                    select.appendChild(option);
+                });
+        }
+
+        async function deleteGroup(groupId, groupName) {
+            if (!confirm(`Sei sicuro di voler eliminare il gruppo "${groupName}"?`)) return;
+
+            try {
+                const response = await fetch(`/api/groups/${groupId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Gruppo eliminato con successo');
+                    await loadGroups();
+                } else {
+                    alert(data.error || 'Errore nell\'eliminazione gruppo');
+                }
+            } catch (error) {
+                console.error('Delete group error:', error);
+                alert('Errore nell\'eliminazione gruppo');
+            }
+        }
+
+        function closeGroupModal() {
+            document.getElementById('groupModal').classList.remove('show');
+        }
+
+        document.getElementById('groupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const groupId = document.getElementById('groupId').value;
+            const isEdit = !!groupId;
+
+            const groupData = {
+                name: document.getElementById('groupName').value.trim(),
+                description: document.getElementById('groupDescription').value.trim() || null,
+                parentGroupId: document.getElementById('parentGroupId').value || null
+            };
+
+            try {
+                const url = isEdit ? `/api/groups/${groupId}` : '/api/groups';
+                const method = isEdit ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify(groupData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(data.message || 'Gruppo salvato con successo');
+                    closeGroupModal();
+                    await loadGroups();
+                } else {
+                    alert(data.error || 'Errore nel salvataggio gruppo');
+                }
+            } catch (error) {
+                console.error('Save group error:', error);
+                alert('Errore nel salvataggio gruppo');
+            }
+        });
+
+        // ==================== GROUP MEMBERS ====================
+
+        async function manageMembers(groupId, groupName) {
+            document.getElementById('membersModalTitle').textContent = `Membri: ${groupName}`;
+            document.getElementById('currentGroupId').value = groupId;
+            
+            // Populate user dropdown
+            const select = document.getElementById('addMemberSelect');
+            select.innerHTML = '<option value="">Seleziona utente...</option>';
+            allUsers.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = `${user.displayName || user.username} (${user.username})`;
+                select.appendChild(option);
+            });
+
+            document.getElementById('membersModal').classList.add('show');
+            
+            await loadGroupMembers(groupId);
+        }
+
+        async function loadGroupMembers(groupId) {
+            try {
+                const response = await fetch(`/api/groups/${groupId}/members`, {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) throw new Error('Failed to load members');
+
+                const data = await response.json();
+                renderGroupMembers(data.members, groupId);
+            } catch (error) {
+                console.error('Load members error:', error);
+                document.getElementById('membersListContent').innerHTML = 
+                    '<div class="alert alert-error">Errore nel caricamento membri</div>';
+            }
+        }
+
+        function renderGroupMembers(members, groupId) {
+            const content = document.getElementById('membersListContent');
+
+            if (members.length === 0) {
+                content.innerHTML = '<div class="empty-state" style="padding: 20px;">Nessun membro nel gruppo</div>';
+                return;
+            }
+
+            const table = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Utente</th>
+                            <th>Email</th>
+                            <th>Aggiunto il</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${members.map(member => `
+                            <tr>
+                                <td><strong>${member.display_name || member.username}</strong></td>
+                                <td>${member.email || '-'}</td>
+                                <td>${new Date(member.joined_at).toLocaleDateString('it-IT')}</td>
+                                <td>
+                                    <button class="btn btn-danger btn-small" onclick="removeMember(${groupId}, ${member.user_id}, '${member.username}')">Rimuovi</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            content.innerHTML = table;
+        }
+
+        async function addMember() {
+            const groupId = document.getElementById('currentGroupId').value;
+            const userId = document.getElementById('addMemberSelect').value;
+
+            if (!userId) {
+                alert('Seleziona un utente');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/groups/${groupId}/members`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ userId: parseInt(userId) })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('addMemberSelect').value = '';
+                    await loadGroupMembers(groupId);
+                } else {
+                    alert(data.error || 'Errore nell\'aggiunta membro');
+                }
+            } catch (error) {
+                console.error('Add member error:', error);
+                alert('Errore nell\'aggiunta membro');
+            }
+        }
+
+        async function removeMember(groupId, userId, username) {
+            if (!confirm(`Rimuovere ${username} dal gruppo?`)) return;
+
+            try {
+                const response = await fetch(`/api/groups/${groupId}/members/${userId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    await loadGroupMembers(groupId);
+                } else {
+                    alert(data.error || 'Errore nella rimozione membro');
+                }
+            } catch (error) {
+                console.error('Remove member error:', error);
+                alert('Errore nella rimozione membro');
+            }
+        }
+
+        function closeMembersModal() {
+            document.getElementById('membersModal').classList.remove('show');
+        }
+
+        // User Details Modal Functions
+        async function showUserDetails(userId) {
+            const modal = document.getElementById('userDetailsModal');
+            const content = document.getElementById('userDetailsContent');
+            
+            modal.classList.add('show');
+            content.innerHTML = '<div class="loading">Caricamento dettagli utente...</div>';
+
+            try {
+                const response = await fetch(`/api/users/${userId}`, {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) throw new Error('Failed to load user details');
+
+                const data = await response.json();
+                const user = data.user;
+
+                document.getElementById('userDetailsTitle').textContent = `Dettagli: ${user.username}`;
+
+                let html = `
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 10px;">Informazioni Utente</h4>
+                        <div style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 8px;">
+                            <p><strong>Username:</strong> ${user.username}</p>
+                            <p><strong>Nome:</strong> ${user.displayName || '-'}</p>
+                            <p><strong>Email:</strong> ${user.email || '-'}</p>
+                            <p><strong>Ruolo:</strong> 
+                                ${user.isSuperAdmin ? '<span class="badge badge-danger">Super Admin</span>' : ''}
+                                ${user.isAdmin && !user.isSuperAdmin ? '<span class="badge badge-warning">Admin</span>' : ''}
+                                ${!user.isAdmin ? '<span class="badge badge-info">User</span>' : ''}
+                            </p>
+                            <p><strong>Stato:</strong> 
+                                ${user.isActive 
+                                    ? '<span class="badge badge-success">Attivo</span>' 
+                                    : '<span class="badge badge-danger">Disattivo</span>'}
+                            </p>
+                        </div>
+                    </div>
+                `;
+
+                // Dispositivi abbinati
+                if (user.pairedDevices && user.pairedDevices.length > 0) {
+                    html += `
+                        <div style="margin-bottom: 20px;">
+                            <h4 style="margin-bottom: 10px;">📱 Dispositivi Abbinati (${user.pairedDevices.length})</h4>
+                            <div style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 8px;">
+                                <table style="width: 100%; font-size: 0.9rem;">
+                                    <thead>
+                                        <tr>
+                                            <th style="text-align: left; padding: 8px;">Nome Dispositivo</th>
+                                            <th style="text-align: left; padding: 8px;">Tipo</th>
+                                            <th style="text-align: left; padding: 8px;">Ultimo Accesso</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${user.pairedDevices.map(device => `
+                                            <tr>
+                                                <td style="padding: 8px;">${device.device_name || 'Sconosciuto'}</td>
+                                                <td style="padding: 8px;">${device.device_type || '-'}</td>
+                                                <td style="padding: 8px;">${new Date(device.last_seen).toLocaleString('it-IT')}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div style="margin-bottom: 20px;">
+                            <h4 style="margin-bottom: 10px;">📱 Dispositivi Abbinati</h4>
+                            <div style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 8px; text-align: center; color: #999;">
+                                Nessun dispositivo abbinato
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Stanze
+                if (user.rooms && user.rooms.length > 0) {
+                    html += `
+                        <div>
+                            <h4 style="margin-bottom: 10px;">🏠 Stanze (${user.rooms.length})</h4>
+                            <div style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 8px;">
+                                <table style="width: 100%; font-size: 0.9rem;">
+                                    <thead>
+                                        <tr>
+                                            <th style="text-align: left; padding: 8px;">Nome Stanza</th>
+                                            <th style="text-align: left; padding: 8px;">Ultimo Accesso</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${user.rooms.map(room => `
+                                            <tr>
+                                                <td style="padding: 8px;">${room.room_name || 'Stanza privata'}</td>
+                                                <td style="padding: 8px;">${new Date(room.last_accessed).toLocaleString('it-IT')}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div>
+                            <h4 style="margin-bottom: 10px;">🏠 Stanze</h4>
+                            <div style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 8px; text-align: center; color: #999;">
+                                Nessuna stanza attiva
+                            </div>
+                        </div>
+                    `;
+                }
+
+                content.innerHTML = html;
+            } catch (error) {
+                console.error('Load user details error:', error);
+                content.innerHTML = '<div class="alert alert-error">Errore nel caricamento dettagli utente</div>';
+            }
+        }
+
+        function closeUserDetailsModal() {
+            document.getElementById('userDetailsModal').classList.remove('show');
+        }
+    </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-const cacheVersion = 'v1.11.2';
+const cacheVersion = 'v1.0.1-auth-rooms';
 const cacheTitle = `gbdrop-cache-${cacheVersion}`;
 const relativePathsToCache = [
     './',
@@ -66,7 +66,28 @@ const relativePathsToCache = [
 ];
 const relativePathsNotToCache = [
     'config'
-]
+];
+
+const doNotCacheRequest = request => {
+    const requestRelativePath = request.url.substring(rootUrlLength);
+    
+    // Check exact match
+    if (relativePathsNotToCache.indexOf(requestRelativePath) !== -1) {
+        return true;
+    }
+    
+    // Do not cache API routes
+    if (requestRelativePath.startsWith('api/')) {
+        return true;
+    }
+    
+    // Do not cache login and admin pages (they need authentication)
+    if (requestRelativePath === 'login.html' || requestRelativePath === 'admin.html') {
+        return true;
+    }
+    
+    return false;
+};
 
 self.addEventListener('install', function(event) {
     // Perform install steps
@@ -121,11 +142,6 @@ const fromCache = request =>
 
 const rootUrl = location.href.substring(0, location.href.length - "service-worker.js".length);
 const rootUrlLength = rootUrl.length;
-
-const doNotCacheRequest = request => {
-    const requestRelativePath = request.url.substring(rootUrlLength);
-    return relativePathsNotToCache.indexOf(requestRelativePath) !== -1
-};
 
 // cache the current page to make it available for offline
 const updateCache = request => new Promise((resolve, reject) => {

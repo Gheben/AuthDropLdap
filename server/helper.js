@@ -11,8 +11,15 @@ export const hasher = {
 };
 
 export const randomizer = {
-    getRandomString(length, onlyNumeric = false) {
-        const validChars = onlyNumeric ? '0123456789' : 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    getRandomString(length, onlyNumeric = false, onlyLetters = false) {
+        let validChars;
+        if (onlyLetters) {
+            validChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+        } else if (onlyNumeric) {
+            validChars = '0123456789';
+        } else {
+            validChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        }
         let array = new Uint8Array(length);
         crypto.getRandomValues(array);
         array = array.map(x => validChars.charCodeAt(x % validChars.length));

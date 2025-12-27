@@ -238,9 +238,27 @@ class PersistentStorage {
 
     static clearRoomSecrets() {
         return new Promise((resolve, reject) => {
-            const DBOpenRequest = window.indexedDB.open('gbdrop_store');
+            const DBOpenRequest = window.indexedDB.open('gbdrop_store', 5);
             DBOpenRequest.onsuccess = (e) => {
                 const db = e.target.result;
+                
+                // Check if the object store exists
+                if (!db.objectStoreNames.contains('room_secrets')) {
+                    console.log('Object store room_secrets does not exist. Database needs upgrade.');
+                    db.close();
+                    // Delete and recreate the database
+                    const deleteRequest = window.indexedDB.deleteDatabase('gbdrop_store');
+                    deleteRequest.onsuccess = () => {
+                        console.log('Database deleted successfully. Please reload the page.');
+                        resolve();
+                    };
+                    deleteRequest.onerror = () => {
+                        console.error('Error deleting database');
+                        reject(new Error('Database upgrade required. Please reload the page.'));
+                    };
+                    return;
+                }
+                
                 const transaction = db.transaction('room_secrets', 'readwrite');
                 const objectStore = transaction.objectStore('room_secrets');
                 const objectStoreRequest = objectStore.clear();

@@ -629,6 +629,7 @@ x-dialog:not([show]) x-background {
     touch-action: manipulation;
     border: none;
     outline: none;
+    background: transparent;
 }
 
 .btn:before,

@@ -3,6 +3,8 @@ import crypto from "crypto"
 
 import Peer from "./peer.js";
 import {hasher, randomizer} from "./helper.js";
+import auth from "./auth.js";
+import database from "./database.js";
 
 export default class GBDropWsServer {
 
@@ -15,10 +17,44 @@ export default class GBDropWsServer {
         this._keepAliveTimers = {};
 
         this._wss = new WebSocketServer({ server });
-        this._wss.on('connection', (socket, request) => this._onConnection(new Peer(socket, request, conf)));
+        this._wss.on('connection', (socket, request) => this._onConnection(new Peer(socket, request, conf), request));
     }
 
-    _onConnection(peer) {
+    async _onConnection(peer, request) {
+        // Authenticate user from JWT token
+        try {
+            const token = auth.extractToken(request);
+            
+            if (!token) {
+                console.log('WebSocket connection rejected: No token provided');
+                peer.socket.close(1008, 'Authentication required');
+                return;
+            }
+
+            const user = await auth.getUserFromToken(token);
+            
+            if (!user) {
+                console.log('WebSocket connection rejected: Invalid token');
+                peer.socket.close(1008, 'Invalid authentication token');
+                return;
+            }
+
+            // Store user info in peer
+            peer.user = user;
+            peer.userId = user.id;
+            peer.username = user.username;
+            
+            // Get user's groups (including nested subgroups)
+            peer.groupIds = await database.getAllGroupIdsForUser(user.id);
+            
+            console.log(`User ${user.username} connected with groups:`, peer.groupIds);
+            
+        } catch (error) {
+            console.error('WebSocket authentication error:', error);
+            peer.socket.close(1011, 'Authentication failed');
+            return;
+        }
+
         peer.socket.on('message', message => this._onMessage(peer, message));
         peer.socket.onerror = e => console.error(e);
 
@@ -241,7 +277,7 @@ export default class GBDropWsServer {
     }
 
     _onCreatePublicRoom(sender) {
-        let publicRoomId = randomizer.getRandomString(5, true).toLowerCase();
+        let publicRoomId = randomizer.getRandomString(5, false, true).toLowerCase();
 
         this._send(sender, {
             type: 'public-room-created',
@@ -319,6 +355,18 @@ export default class GBDropWsServer {
 
         // add secret to peer
         peer.addRoomSecret(roomSecret);
+        
+        // Save room to database if user is authenticated
+        if (peer.userId) {
+            console.log(`[DB] Saving room for user ${peer.userId}: ${roomSecret.substring(0, 20)}...`);
+            database.addUserRoom(peer.userId, roomSecret)
+                .then(() => {
+                    console.log(`[DB] ✅ Room saved successfully for user ${peer.userId}`);
+                })
+                .catch(err => console.error(`[DB] ❌ Error saving user room:`, err));
+        } else {
+            console.log(`[DB] ⚠️ Cannot save room - peer has no userId`);
+        }
     }
 
     _joinPublicRoom(peer, publicRoomId) {
@@ -328,6 +376,18 @@ export default class GBDropWsServer {
         this._joinRoom(peer, 'public-id', publicRoomId);
 
         peer.publicRoomId = publicRoomId;
+        
+        // Save public room to database if user is authenticated
+        if (peer.userId) {
+            console.log(`[DB] Saving public room for user ${peer.userId}: ${publicRoomId}`);
+            database.addUserRoom(peer.userId, publicRoomId, `Gruppo pubblico: ${publicRoomId}`)
+                .then(() => {
+                    console.log(`[DB] ✅ Public room saved successfully for user ${peer.userId}`);
+                })
+                .catch(err => console.error(`[DB] ❌ Error saving public room:`, err));
+        } else {
+            console.log(`[DB] ⚠️ Cannot save public room - peer has no userId`);
+        }
     }
 
     _joinRoom(peer, roomType, roomId) {
@@ -398,10 +458,21 @@ export default class GBDropWsServer {
     _notifyPeers(peer, roomType, roomId) {
         if (!this._rooms[roomId]) return;
 
-        // notify all other peers that peer joined
+        // Helper function to check if two peers share at least one group
+        const shareGroup = (peer1, peer2) => {
+            if (!peer1.groupIds || !peer2.groupIds) return false;
+            if (peer1.groupIds.length === 0 || peer2.groupIds.length === 0) return false;
+            
+            return peer1.groupIds.some(groupId => peer2.groupIds.includes(groupId));
+        };
+
+        // notify all other peers that peer joined (only if they share a group)
         for (const otherPeerId in this._rooms[roomId]) {
             if (otherPeerId === peer.id) continue;
             const otherPeer = this._rooms[roomId][otherPeerId];
+
+            // Only notify if peers share at least one group
+            if (!shareGroup(peer, otherPeer)) continue;
 
             let msg = {
                 type: 'peer-joined',
@@ -413,11 +484,17 @@ export default class GBDropWsServer {
             this._send(otherPeer, msg);
         }
 
-        // notify peer about peers already in the room
+        // notify peer about peers already in the room (only those in same groups)
         const otherPeers = [];
         for (const otherPeerId in this._rooms[roomId]) {
             if (otherPeerId === peer.id) continue;
-            otherPeers.push(this._rooms[roomId][otherPeerId].getInfo());
+            
+            const otherPeer = this._rooms[roomId][otherPeerId];
+            
+            // Only include peers that share at least one group
+            if (shareGroup(peer, otherPeer)) {
+                otherPeers.push(otherPeer.getInfo());
+            }
         }
 
         let msg = {
