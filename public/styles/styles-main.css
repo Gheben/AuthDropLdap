@@ -12,6 +12,7 @@ body {
     overscroll-behavior: none;
     overflow-y: hidden;
     transition: color 300ms;
+    background: transparent;
 }
 
 body {

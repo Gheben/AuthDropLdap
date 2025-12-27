@@ -134,13 +134,16 @@ export default class Peer {
             deviceName = 'Browser sconosciuto';
         }
 
+        // Usa il nome del dispositivo come displayName principale
+        const randomName = uniqueNamesGenerator({
+            length: 2,
+            separator: ' ',
+            dictionaries: [colors, animals],
+            style: 'capital'
+        });
+
         this.name = {
-            displayName: uniqueNamesGenerator({
-                length: 2,
-                separator: ' ',
-                dictionaries: [colors, animals],
-                style: 'capital'
-            }),
+            displayName: deviceName || randomName,
             deviceName
         };
     }
