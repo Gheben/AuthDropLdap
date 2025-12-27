@@ -245,10 +245,33 @@ class AuthDrop {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker
                 .register('service-worker.js')
-                .then(serviceWorker => {
+                .then(registration => {
                     console.log('Service Worker registered');
-                    window.serviceWorker = serviceWorker
+                    window.serviceWorker = registration;
+                    
+                    // Check for updates every time the page loads
+                    registration.update();
+                    
+                    // Handle service worker updates
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        console.log('New Service Worker found, installing...');
+                        
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                // New service worker available, reload the page
+                                console.log('New Service Worker installed, reloading page...');
+                                window.location.reload();
+                            }
+                        });
+                    });
                 });
+                
+            // Refresh the page when the service worker takes control
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                console.log('Service Worker controller changed, reloading...');
+                window.location.reload();
+            });
         }
     }
 

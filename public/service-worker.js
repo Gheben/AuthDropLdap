@@ -1,4 +1,4 @@
-const cacheVersion = 'v1.0.1-auth-rooms';
+const cacheVersion = 'v1.0.3-auth-post-fix';
 const cacheTitle = `authdrop-cache-${cacheVersion}`;
 const relativePathsToCache = [
     './',
@@ -176,10 +176,18 @@ self.addEventListener('fetch', function(event) {
     }
     else if (event.request.method === "POST") {
         // Requests related to Web Share Target.
-        event.respondWith((async () => {
-            const share_url = await evaluateRequestData(event.request);
-            return Response.redirect(encodeURI(share_url), 302);
-        })());
+        const contentType = event.request.headers.get('content-type') || '';
+        
+        // Only handle multipart/form-data POST requests (Web Share Target)
+        if (contentType.includes('multipart/form-data')) {
+            event.respondWith((async () => {
+                const share_url = await evaluateRequestData(event.request);
+                return Response.redirect(encodeURI(share_url), 302);
+            })());
+        } else {
+            // For other POST requests (like API calls), just pass through
+            event.respondWith(fetch(event.request));
+        }
     }
     else {
         // Regular requests not related to Web Share Target:
