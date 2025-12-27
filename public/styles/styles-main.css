@@ -140,6 +140,9 @@ header {
     top: 0;
     right: 0;
     min-height: 56px;
+    background: linear-gradient(90deg, rgba(25, 118, 210, 0.05) 0%, rgba(255, 111, 0, 0.05) 100%);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(25, 118, 210, 0.1);
 }
 
 header.overflow-hidden {
@@ -416,15 +419,22 @@ x-peers {
 x-no-peers {
     display: flex;
     flex-direction: column;
-    padding: 8px;
-    height: 137px;
+    padding: 16px;
+    height: 160px;
     text-align: center;
+    background: linear-gradient(135deg, rgba(25, 118, 210, 0.08) 0%, rgba(255, 111, 0, 0.08) 100%);
+    border-radius: 16px;
+    margin: 0 16px;
+    box-shadow: 0 4px 12px rgba(25, 118, 210, 0.15);
 }
 
 x-no-peers h2,
 x-no-peers a {
     color: var(--primary-color);
-    margin-bottom: 5px;
+    margin-bottom: 8px;
+    font-size: 1.3em;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
 x-peers:not(:empty)+x-no-peers {
@@ -459,10 +469,14 @@ footer {
 }
 
 footer .logo {
-    --icon-size: 80px;
-    margin-bottom: 8px;
-    color: var(--primary-color);
+    --icon-size: 90px;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     margin-top: -10px;
+    filter: drop-shadow(0 2px 4px rgba(25, 118, 210, 0.3));
 }
 
 .border {
@@ -845,13 +859,16 @@ x-dialog[show] ~ div x-toast {
 x-instructions {
     display: flex;
     position: relative;
-    opacity: 0.5;
+    opacity: 0.8;
     text-align: center;
     margin-right: 10px;
     margin-left: 10px;
     min-height: max(6vh, 40px);
     flex-direction: column;
     justify-content: end;
+    color: var(--accent-color);
+    font-weight: 500;
+    font-size: 1.05em;
 }
 
 x-instructions:not([drop-peer]):not([drop-bg]):before {
@@ -984,6 +1001,9 @@ body {
     --shadow-color-secondary-cover-rgb: var(--lt-shadow-color-secondary-cover-rgb);
     --shadow-color-dialog-rgb: var(--lt-shadow-color-dialog-rgb);
     --shadow-color-dialog-cover-rgb: var(--lt-shadow-color-dialog-cover-rgb);
+    
+    /* Gradiente personalizzato GBDrop */
+    background: linear-gradient(135deg, #e3f2fd 0%, #fff3e0 100%);
 }
 
 /* Dark theme colors */
@@ -998,6 +1018,10 @@ body.dark-theme {
 
     --shadow-color-secondary-rgb: var(--dt-shadow-color-secondary-rgb);
     --shadow-color-secondary-cover-rgb: var(--dt-shadow-color-secondary-cover-rgb);
+    
+    /* Gradiente scuro personalizzato GBDrop */
+    background: linear-gradient(135deg, #0d47a1 0%, #e65100 100%);
+}
     --shadow-color-dialog-rgb: var(--dt-shadow-color-dialog-rgb);
     --shadow-color-dialog-cover-rgb: var(--dt-shadow-color-dialog-cover-rgb);
 }
