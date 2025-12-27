@@ -353,6 +353,118 @@
             border: 1px solid rgba(76, 175, 80, 0.4);
             color: #81c784;
         }
+
+        /* Table wrapper per scroll orizzontale su mobile */
+        .table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin-top: 15px;
+        }
+
+        /* Media query per schermi piccoli (mobile) */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                padding: 15px;
+            }
+
+            .header h1 {
+                font-size: 1.3rem;
+                text-align: center;
+            }
+
+            .header-actions {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .header-actions .btn {
+                width: 100%;
+            }
+
+            .tabs {
+                padding: 10px;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .tab {
+                font-size: 0.8rem;
+                padding: 8px 12px;
+                white-space: nowrap;
+            }
+
+            .panel {
+                padding: 15px;
+            }
+
+            .panel-header {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+
+            .panel-header h2 {
+                font-size: 1.1rem;
+            }
+
+            .panel-header .btn {
+                width: 100%;
+            }
+
+            /* Tabella responsive: scroll orizzontale */
+            table {
+                min-width: 600px;
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: 8px;
+                white-space: nowrap;
+            }
+
+            /* Riduci padding bottoni small su mobile */
+            .btn-small {
+                padding: 4px 8px;
+                font-size: 0.75rem;
+            }
+
+            /* Modal responsive */
+            .modal-content {
+                width: 95%;
+                padding: 20px;
+                max-height: 85vh;
+            }
+
+            .modal-header h3 {
+                font-size: 1.1rem;
+            }
+
+            /* Form responsive */
+            .form-row {
+                flex-direction: column;
+            }
+
+            .form-group {
+                width: 100% !important;
+            }
+
+            /* Nascondi colonne meno importanti su schermi molto piccoli */
+            @media (max-width: 480px) {
+                table {
+                    font-size: 0.75rem;
+                }
+                
+                .header h1 {
+                    font-size: 1.1rem;
+                }
+            }
+        }
     </style>
 </head>
 <body>
@@ -652,6 +764,7 @@
             }
 
             const table = `
+                <div class="table-wrapper">
                 <table>
                     <thead>
                         <tr>
@@ -702,6 +815,7 @@
                         `).join('')}
                     </tbody>
                 </table>
+                </div>
             `;
 
             content.innerHTML = table;
@@ -841,6 +955,7 @@
             }
 
             const table = `
+                <div class="table-wrapper">
                 <table>
                     <thead>
                         <tr>
@@ -872,6 +987,7 @@
                         }).join('')}
                     </tbody>
                 </table>
+                </div>
             `;
 
             content.innerHTML = table;
@@ -1281,6 +1397,7 @@
                 }
 
                 const table = `
+                    <div class="table-wrapper">
                     <table style="width: 100%; border-collapse: collapse;">
                         <thead>
                             <tr>
@@ -1325,6 +1442,7 @@
                             `).join('')}
                         </tbody>
                     </table>
+                    </div>
                 `;
 
                 content.innerHTML = table;

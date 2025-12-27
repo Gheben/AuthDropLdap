@@ -463,8 +463,17 @@ export default class AuthDropWsServer {
     _notifyPeers(peer, roomType, roomId) {
         if (!this._rooms[roomId]) return;
 
-        // Helper function to check if two peers share at least one group
-        const shareGroup = (peer1, peer2) => {
+        // Helper function to check if two peers can see each other
+        // Possono vedersi se:
+        // 1. Sono lo stesso utente (stesso userId)
+        // 2. Condividono almeno un gruppo
+        const canSeeEachOther = (peer1, peer2) => {
+            // Stesso utente su dispositivi diversi -> sempre visibili
+            if (peer1.userId && peer2.userId && peer1.userId === peer2.userId) {
+                return true;
+            }
+            
+            // Condividono almeno un gruppo
             if (!peer1.groupIds || !peer2.groupIds) return false;
             if (peer1.groupIds.length === 0 || peer2.groupIds.length === 0) return false;
             
@@ -483,10 +492,10 @@ export default class AuthDropWsServer {
             if (otherPeerId === peer.id) continue;
             const otherPeer = this._rooms[roomId][otherPeerId];
 
-            // Se è IP room, verifica che condividano almeno un gruppo
+            // Se è IP room, verifica che condividano almeno un gruppo O siano lo stesso utente
             // Se è Secret/Public room, notifica sempre
-            if (requireGroupCheck && !shareGroup(peer, otherPeer)) {
-                console.log(`[NOTIFY] ❌ Skipping ${otherPeer.username || otherPeerId} - no shared groups`);
+            if (requireGroupCheck && !canSeeEachOther(peer, otherPeer)) {
+                console.log(`[NOTIFY] ❌ Skipping ${otherPeer.username || otherPeerId} - no shared groups or same user`);
                 continue;
             }
             
@@ -509,10 +518,10 @@ export default class AuthDropWsServer {
             
             const otherPeer = this._rooms[roomId][otherPeerId];
             
-            // Se è IP room, includi solo peer nello stesso gruppo
+            // Se è IP room, includi solo peer nello stesso gruppo O stesso utente
             // Se è Secret/Public room, includi tutti
-            if (requireGroupCheck && !shareGroup(peer, otherPeer)) {
-                console.log(`[NOTIFY] ❌ Skipping ${otherPeer.username || otherPeerId} from peers list - no shared groups`);
+            if (requireGroupCheck && !canSeeEachOther(peer, otherPeer)) {
+                console.log(`[NOTIFY] ❌ Skipping ${otherPeer.username || otherPeerId} from peers list - no shared groups or same user`);
                 continue;
             }
             
