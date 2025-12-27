@@ -471,20 +471,22 @@ class Database {
                 )
             `);
 
-            // Group members table
+
+            // Group members table (allineato a SQLite)
             await client.query(`
                 CREATE TABLE IF NOT EXISTS group_members (
                     id SERIAL PRIMARY KEY,
                     group_id INTEGER NOT NULL,
                     user_id INTEGER NOT NULL,
-                    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    is_group_admin BOOLEAN DEFAULT FALSE,
+                    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
                     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                     UNIQUE(group_id, user_id)
                 )
             `);
 
-            // Sessions table
+            // Sessions table (aggiunto ip_address e user_agent come in SQLite)
             await client.query(`
                 CREATE TABLE IF NOT EXISTS sessions (
                     id SERIAL PRIMARY KEY,
@@ -498,14 +500,15 @@ class Database {
                 )
             `);
 
-            // Paired devices table
+            // Paired devices table (allineato a SQLite)
             await client.query(`
                 CREATE TABLE IF NOT EXISTS paired_devices (
                     id SERIAL PRIMARY KEY,
                     user_id INTEGER NOT NULL,
-                    device_name TEXT,
+                    device_name TEXT NOT NULL,
                     device_type TEXT,
-                    pair_key TEXT UNIQUE NOT NULL,
+                    pair_key TEXT NOT NULL UNIQUE,
+                    last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
                 )
