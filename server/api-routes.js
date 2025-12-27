@@ -418,6 +418,7 @@ router.put('/users/:id', auth.requireAdmin, async (req, res) => {
         const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
         const userAgent = req.headers['user-agent'];
         const changes = [];
+        if (updates.username) changes.push('username');
         if (updates.displayName) changes.push('nome visualizzato');
         if (updates.email) changes.push('email');
         if (updates.hasOwnProperty('isAdmin')) changes.push('privilegi admin');

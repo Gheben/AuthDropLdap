@@ -225,34 +225,54 @@ class Database {
 
     updateUser(id, updates) {
         return new Promise((resolve, reject) => {
-            const fields = [];
-            const values = [];
+            const processUpdate = (passwordHash = null) => {
+                const fields = [];
+                const values = [];
 
-            if (updates.display_name !== undefined) {
-                fields.push('display_name = ?');
-                values.push(updates.display_name);
-            }
-            if (updates.email !== undefined) {
-                fields.push('email = ?');
-                values.push(updates.email);
-            }
-            if (updates.is_admin !== undefined) {
-                fields.push('is_admin = ?');
-                values.push(updates.is_admin ? 1 : 0);
-            }
-            if (updates.is_active !== undefined) {
-                fields.push('is_active = ?');
-                values.push(updates.is_active ? 1 : 0);
-            }
+                if (updates.username !== undefined) {
+                    fields.push('username = ?');
+                    values.push(updates.username);
+                }
+                if (passwordHash !== null) {
+                    fields.push('password_hash = ?');
+                    values.push(passwordHash);
+                }
+                if (updates.display_name !== undefined) {
+                    fields.push('display_name = ?');
+                    values.push(updates.display_name);
+                }
+                if (updates.email !== undefined) {
+                    fields.push('email = ?');
+                    values.push(updates.email);
+                }
+                if (updates.is_admin !== undefined) {
+                    fields.push('is_admin = ?');
+                    values.push(updates.is_admin ? 1 : 0);
+                }
+                if (updates.is_active !== undefined) {
+                    fields.push('is_active = ?');
+                    values.push(updates.is_active ? 1 : 0);
+                }
 
-            fields.push('updated_at = CURRENT_TIMESTAMP');
-            values.push(id);
+                fields.push('updated_at = CURRENT_TIMESTAMP');
+                values.push(id);
 
-            const sql = `UPDATE users SET ${fields.join(', ')} WHERE id = ?`;
-            this.db.run(sql, values, (err) => {
-                if (err) reject(err);
-                else resolve();
-            });
+                const sql = `UPDATE users SET ${fields.join(', ')} WHERE id = ?`;
+                this.db.run(sql, values, (err) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            };
+
+            // Se c'è una nuova password, hashala prima
+            if (updates.password !== undefined && updates.password !== '') {
+                bcrypt.hash(updates.password, 10, (err, hash) => {
+                    if (err) reject(err);
+                    else processUpdate(hash);
+                });
+            } else {
+                processUpdate();
+            }
         });
     }
 
