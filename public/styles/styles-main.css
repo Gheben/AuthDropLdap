@@ -423,10 +423,12 @@ x-no-peers {
     padding: 16px;
     height: 160px;
     text-align: center;
-    background: linear-gradient(135deg, rgba(25, 118, 210, 0.08) 0%, rgba(255, 111, 0, 0.08) 100%);
+    background: transparent;
+    border: none;
     border-radius: 16px;
     margin: 0 16px;
-    box-shadow: 0 4px 12px rgba(25, 118, 210, 0.15);
+    box-shadow: none;
+    z-index: 3;
 }
 
 x-no-peers h2,
@@ -757,8 +759,7 @@ button::-moz-focus-inner {
     width: var(--size);
     height: var(--size);
     z-index: -1;
-    background: var(--primary-color);
-    background-image: radial-gradient(circle at calc(50% - 36px), var(--primary-color) 0%, black 80%);
+    background: linear-gradient(135deg, #0a2540 0%, #5c2000 100%);
     --crop-size: 0px;
     clip-path: circle(var(--crop-size));
     /* For clients < iOS 13.1 */
@@ -973,13 +974,13 @@ body {
     --lt-shadow-color-dialog-cover-rgb: 242,242,242;
 
     /* Dark theme colors */
-    --dt-text-color: 238,238,238;
-    --dt-dialog-bg-color: #141414;
+    --dt-text-color: 245,245,245;
+    --dt-dialog-bg-color: #0a0a0a;
     --dt-bg-color: 0,0,0;
-    --dt-bg-color-secondary: #262628;
-    --dt-border-color: #757575;
-    --dt-badge-color: #757575;
-    --dt-lang-hr-color: #404040;
+    --dt-bg-color-secondary: #1a1a1a;
+    --dt-border-color: #404040;
+    --dt-badge-color: #505050;
+    --dt-lang-hr-color: #2a2a2a;
 
     --dt-shadow-color-secondary-rgb: 255,255,255;
     --dt-shadow-color-secondary-cover-rgb: 38,38,38;
@@ -1031,7 +1032,8 @@ body.dark-theme {
 
 /* Gradiente personalizzato GBDrop Dark */
 body.dark-theme::before {
-    background: linear-gradient(135deg, #0d47a1 0%, #e65100 100%);
+    background: linear-gradient(135deg, #0a2540 0%, #5c2000 100%);
+    opacity: 0.85;
 }
 
 /* Styles for users who prefer dark mode at the OS level */

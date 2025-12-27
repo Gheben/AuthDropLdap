@@ -21,23 +21,9 @@ class Events {
 class ThemeUI {
 
     constructor() {
-        this.prefersDarkTheme = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        this.prefersLightTheme = window.matchMedia('(prefers-color-scheme: light)').matches;
-
-        this.$themeAutoBtn = document.getElementById('theme-auto');
-        this.$themeLightBtn = document.getElementById('theme-light');
-        this.$themeDarkBtn = document.getElementById('theme-dark');
-
-        let currentTheme = this.getCurrentTheme();
-        if (currentTheme === 'dark') {
-            this.setModeToDark();
-        } else if (currentTheme === 'light') {
-            this.setModeToLight();
-        }
-
-        this.$themeAutoBtn.addEventListener('click', _ => this.onClickAuto());
-        this.$themeLightBtn.addEventListener('click', _ => this.onClickLight());
-        this.$themeDarkBtn.addEventListener('click', _ => this.onClickDark());
+        // Imposta sempre tema scuro
+        document.body.classList.add('dark-theme');
+        localStorage.setItem('theme', 'dark');
     }
 
     getCurrentTheme() {
@@ -238,35 +224,8 @@ class FooterUI {
         Events.fire('self-display-name-changed', displayNameSaved);
     }
 
-    _getUrlParameter(name) {
-        const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get(name);
-    }
-
-    async _checkUrlParameters() {
-        // Check if username is provided via URL parameter
-        const usernameFromUrl = this._getUrlParameter('username') || this._getUrlParameter('displayName');
-        
-        if (usernameFromUrl) {
-            const decodedUsername = decodeURIComponent(usernameFromUrl);
-            console.log("Username from URL parameter:", decodedUsername);
-            
-            // Save it automatically
-            await this._saveDisplayName(decodedUsername);
-            
-            // Clean URL after saving (optional, to avoid sharing URL with username)
-            if (window.history && window.history.replaceState) {
-                const cleanUrl = window.location.pathname;
-                window.history.replaceState({}, document.title, cleanUrl);
-            }
-        }
-    }
-
     async _onDisplayName(displayNameServer){
-        // Check URL parameters first
-        await this._checkUrlParameters();
-        
-        // load saved displayname to prevent flickering
+        // load saved displayname first to prevent flickering
         await this._loadSavedDisplayName();
 
         // set original display name as placeholder
