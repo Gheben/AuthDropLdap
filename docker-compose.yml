@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  authdrop:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: authdrop
+    restart: unless-stopped
+    ports:
+      - "3441:3441"
+    volumes:
+      # Persisti il database SQLite su Synology
+      - /volume1/docker/authdrop/data:/home/node/app
+    environment:
+      - NODE_ENV=production
+      - PORT=3441
+      - DEBUG_MODE=false
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3441"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - authdrop-network
+
+networks:
+  authdrop-network:
+    driver: bridge
