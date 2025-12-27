@@ -467,13 +467,19 @@ export default class AuthDropWsServer {
             return peer1.groupIds.some(groupId => peer2.groupIds.includes(groupId));
         };
 
-        // notify all other peers that peer joined (only if they share a group)
+        // Determina se serve il controllo dei gruppi:
+        // - IP room: serve il controllo (dispositivi devono essere nello stesso gruppo)
+        // - Secret/Public room: NO controllo (lo scopo è condividere tra utenti diversi)
+        const requireGroupCheck = roomType === 'ip';
+
+        // notify all other peers that peer joined
         for (const otherPeerId in this._rooms[roomId]) {
             if (otherPeerId === peer.id) continue;
             const otherPeer = this._rooms[roomId][otherPeerId];
 
-            // Only notify if peers share at least one group
-            if (!shareGroup(peer, otherPeer)) continue;
+            // Se è IP room, verifica che condividano almeno un gruppo
+            // Se è Secret/Public room, notifica sempre
+            if (requireGroupCheck && !shareGroup(peer, otherPeer)) continue;
 
             let msg = {
                 type: 'peer-joined',
@@ -485,17 +491,18 @@ export default class AuthDropWsServer {
             this._send(otherPeer, msg);
         }
 
-        // notify peer about peers already in the room (only those in same groups)
+        // notify peer about peers already in the room
         const otherPeers = [];
         for (const otherPeerId in this._rooms[roomId]) {
             if (otherPeerId === peer.id) continue;
             
             const otherPeer = this._rooms[roomId][otherPeerId];
             
-            // Only include peers that share at least one group
-            if (shareGroup(peer, otherPeer)) {
-                otherPeers.push(otherPeer.getInfo());
-            }
+            // Se è IP room, includi solo peer nello stesso gruppo
+            // Se è Secret/Public room, includi tutti
+            if (requireGroupCheck && !shareGroup(peer, otherPeer)) continue;
+            
+            otherPeers.push(otherPeer.getInfo());
         }
 
         let msg = {
