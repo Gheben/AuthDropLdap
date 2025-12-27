@@ -747,7 +747,7 @@ class Dialog {
             document.activeElement.blur();
             window.blur();
         }
-        document.title = 'PairDrop | Transfer Files Cross-Platform. No Setup, No Signup.';
+        document.title = 'GBDrop | Transfer Files Cross-Platform. No Setup, No Signup.';
         changeFavicon("images/favicon-96x96.png");
         this.correspondingPeerId = undefined;
     }
@@ -1017,7 +1017,7 @@ class ReceiveFileDialog extends ReceiveDialog {
                 hours = hours.length < 2 ? "0" + hours : hours;
                 let minutes = now.getMinutes().toString();
                 minutes = minutes.length < 2 ? "0" + minutes : minutes;
-                filenameDownload = `PairDrop_files_${year+month+date}_${hours+minutes}.zip`;
+                filenameDownload = `GBDrop_files_${year+month+date}_${hours+minutes}.zip`;
             } catch (e) {
                 console.error(e);
                 downloadZipped = false;
@@ -1048,8 +1048,8 @@ class ReceiveFileDialog extends ReceiveDialog {
         };
 
         document.title = files.length === 1
-            ? `${ Localization.getTranslation("document-titles.file-received") } - PairDrop`
-            : `${ Localization.getTranslation("document-titles.file-received-plural", null, {count: files.length}) } - PairDrop`;
+            ? `${ Localization.getTranslation("document-titles.file-received") } - GBDrop`
+            : `${ Localization.getTranslation("document-titles.file-received-plural", null, {count: files.length}) } - GBDrop`;
         changeFavicon("images/favicon-96x96-notification.png");
 
         Events.fire('set-progress', {peerId: peerId, progress: 1, status: 'process'})
@@ -1155,7 +1155,7 @@ class ReceiveRequestDialog extends ReceiveDialog {
 
         this.$receiveTitle.innerText = transferRequestTitle;
 
-        document.title =  `${transferRequestTitle} - PairDrop`;
+        document.title =  `${transferRequestTitle} - GBDrop`;
         changeFavicon("images/favicon-96x96-notification.png");
 
         this.$acceptRequestBtn.removeAttribute('disabled');
@@ -2146,8 +2146,8 @@ class ReceiveTextDialog extends Dialog {
 
     _setDocumentTitleMessages() {
         document.title = this._receiveTextQueue.length <= 1
-            ? `${ Localization.getTranslation("document-titles.message-received") } - PairDrop`
-            : `${ Localization.getTranslation("document-titles.message-received-plural", null, {count: this._receiveTextQueue.length + 1}) } - PairDrop`;
+            ? `${ Localization.getTranslation("document-titles.message-received") } - GBDrop`
+            : `${ Localization.getTranslation("document-titles.message-received-plural", null, {count: this._receiveTextQueue.length + 1}) } - GBDrop`;
     }
 
     async _onCopy() {
@@ -2673,7 +2673,7 @@ class WebShareTargetUI {
             }
         }
         else if (shareTargetType === "files") {
-            let openRequest = window.indexedDB.open('pairdrop_store')
+            let openRequest = window.indexedDB.open('gbdrop_store')
             openRequest.onsuccess = e => {
                 const db = e.target.result;
                 const tx = db.transaction('share_target_files', 'readwrite');

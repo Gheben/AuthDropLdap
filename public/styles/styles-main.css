@@ -929,11 +929,11 @@ x-peers:empty~x-instructions {
 
 /* Default colors */
 body {
-    /* Constant colors */
-    --primary-color: #4285f4;
+    /* Constant colors - Colori personalizzati dal logo GB */
+    --primary-color: #1976D2;
     --paired-device-color: #00a69c;
-    --public-room-color: #ed9d01;
-    --accent-color: var(--primary-color);
+    --public-room-color: #FF6F00;
+    --accent-color: #FF6F00;
     --ws-peer-color: #ff6b6b;
     --btn-disabled-color: #5B5B66;
 

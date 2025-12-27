@@ -1,7 +1,7 @@
 import crypto from "crypto";
 
 export const hasher = {
-    hashCodeSalted(str, salt = "PairDrop") {
+    hashCodeSalted(str, salt = "GBDrop") {
         return this.hashCode(str + salt);
     },
 
