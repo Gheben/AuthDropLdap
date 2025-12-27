@@ -15,6 +15,13 @@ class AuthDrop {
 
     async checkAuth() {
         try {
+            // Skip auth check if no token exists (avoids 401 errors in console)
+            const hasToken = localStorage.getItem('authdrop_token');
+            if (!hasToken) {
+                console.log('No token found, skipping auth check');
+                return false;
+            }
+            
             console.log('Checking authentication...');
             const response = await fetch('/api/me', {
                 credentials: 'include'

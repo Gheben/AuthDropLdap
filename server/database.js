@@ -105,6 +105,23 @@ class Database {
                         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                         UNIQUE(user_id, room_secret)
                     )
+                `);
+
+                // Audit logs table
+                this.db.run(`
+                    CREATE TABLE IF NOT EXISTS audit_logs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER,
+                        username TEXT,
+                        action TEXT NOT NULL,
+                        resource_type TEXT,
+                        resource_id TEXT,
+                        details TEXT,
+                        ip_address TEXT,
+                        user_agent TEXT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+                    )
                 `, (err) => {
                     if (err) {
                         reject(err);
@@ -420,15 +437,32 @@ class Database {
     }
 
     // Paired Devices Methods
-    async addPairedDevice(userId, deviceName, deviceType, pairKey) {
+    async addPairedDevice(userId, deviceName, deviceType, pairKey, username = null, ip = null, userAgent = null) {
         return new Promise((resolve, reject) => {
             this.db.run(
                 `INSERT OR REPLACE INTO paired_devices (user_id, device_name, device_type, pair_key, last_seen)
                  VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
                 [userId, deviceName, deviceType, pairKey],
-                function(err) {
-                    if (err) reject(err);
-                    else resolve(this.lastID);
+                async (err) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        const deviceId = this.lastID;
+                        // Log device pairing
+                        if (username) {
+                            await this.logAction(
+                                userId,
+                                username,
+                                'pair_device',
+                                'device',
+                                deviceId,
+                                `Accoppiato dispositivo: ${deviceName} (${deviceType})`,
+                                ip,
+                                userAgent
+                            ).catch(err => console.error('Log action error:', err));
+                        }
+                        resolve(deviceId);
+                    }
                 }
             );
         });
@@ -447,29 +481,62 @@ class Database {
         });
     }
 
-    async removePairedDevice(userId, pairKey) {
+    async removePairedDevice(userId, pairKey, username = null, deviceName = null, ip = null, userAgent = null) {
         return new Promise((resolve, reject) => {
             this.db.run(
                 'DELETE FROM paired_devices WHERE user_id = ? AND pair_key = ?',
                 [userId, pairKey],
-                (err) => {
-                    if (err) reject(err);
-                    else resolve();
+                async (err) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        // Log device removal
+                        if (username) {
+                            await this.logAction(
+                                userId,
+                                username,
+                                'remove_device',
+                                'device',
+                                null,
+                                `Rimosso dispositivo${deviceName ? `: ${deviceName}` : ''}`,
+                                ip,
+                                userAgent
+                            ).catch(err => console.error('Log action error:', err));
+                        }
+                        resolve();
+                    }
                 }
             );
         });
     }
 
     // User Rooms Methods
-    async addUserRoom(userId, roomSecret, roomName = null) {
+    async addUserRoom(userId, roomSecret, roomName = null, username = null, ip = null, userAgent = null) {
         return new Promise((resolve, reject) => {
             this.db.run(
                 `INSERT OR REPLACE INTO user_rooms (user_id, room_secret, room_name, last_accessed)
                  VALUES (?, ?, ?, CURRENT_TIMESTAMP)`,
                 [userId, roomSecret, roomName],
-                function(err) {
-                    if (err) reject(err);
-                    else resolve(this.lastID);
+                async (err) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        const roomId = this.lastID;
+                        // Log room access
+                        if (username) {
+                            await this.logAction(
+                                userId,
+                                username,
+                                'access_room',
+                                'room',
+                                roomId,
+                                `Accesso stanza${roomName ? `: ${roomName}` : ''}`,
+                                ip,
+                                userAgent
+                            ).catch(err => console.error('Log action error:', err));
+                        }
+                        resolve(roomId);
+                    }
                 }
             );
         });
@@ -488,14 +555,71 @@ class Database {
         });
     }
 
-    async removeUserRoom(userId, roomSecret) {
+    async removeUserRoom(userId, roomSecret, username = null, roomName = null, ip = null, userAgent = null) {
         return new Promise((resolve, reject) => {
             this.db.run(
                 'DELETE FROM user_rooms WHERE user_id = ? AND room_secret = ?',
                 [userId, roomSecret],
+                async (err) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        // Log room removal
+                        if (username) {
+                            await this.logAction(
+                                userId,
+                                username,
+                                'remove_room',
+                                'room',
+                                null,
+                                `Rimossa stanza${roomName ? `: ${roomName}` : ''}`,
+                                ip,
+                                userAgent
+                            ).catch(err => console.error('Log action error:', err));
+                        }
+                        resolve();
+                    }
+                }
+            );
+        });
+    }
+
+    // Audit log methods
+    async logAction(userId, username, action, resourceType = null, resourceId = null, details = null, ipAddress = null, userAgent = null) {
+        return new Promise((resolve, reject) => {
+            this.db.run(
+                `INSERT INTO audit_logs (user_id, username, action, resource_type, resource_id, details, ip_address, user_agent)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                [userId, username, action, resourceType, resourceId, details, ipAddress, userAgent],
                 (err) => {
                     if (err) reject(err);
                     else resolve();
+                }
+            );
+        });
+    }
+
+    async getAuditLogs(limit = 100, offset = 0) {
+        return new Promise((resolve, reject) => {
+            this.db.all(
+                `SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+                [limit, offset],
+                (err, rows) => {
+                    if (err) reject(err);
+                    else resolve(rows || []);
+                }
+            );
+        });
+    }
+
+    async getAuditLogsByUser(userId, limit = 50) {
+        return new Promise((resolve, reject) => {
+            this.db.all(
+                `SELECT * FROM audit_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT ?`,
+                [userId, limit],
+                (err, rows) => {
+                    if (err) reject(err);
+                    else resolve(rows || []);
                 }
             );
         });

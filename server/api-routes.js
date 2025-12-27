@@ -51,6 +51,11 @@ router.post('/login', async (req, res) => {
             sameSite: 'strict'
         });
 
+        // Log successful login
+        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+        const userAgent = req.headers['user-agent'];
+        await database.logAction(user.id, user.username, 'login', null, null, 'Login effettuato con successo', ip, userAgent);
+
         res.json({
             success: true,
             token,
@@ -76,7 +81,12 @@ router.post('/login', async (req, res) => {
  * POST /api/logout
  * Logout current user
  */
-router.post('/logout', auth.requireAuth, (req, res) => {
+router.post('/logout', auth.requireAuth, async (req, res) => {
+    // Log logout
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+    const userAgent = req.headers['user-agent'];
+    await database.logAction(req.user.id, req.user.username, 'logout', null, null, 'Logout effettuato', ip, userAgent);
+    
     res.clearCookie('authdrop_token');
     res.json({ success: true, message: 'Logout effettuato con successo' });
 });
@@ -167,7 +177,15 @@ router.delete('/me/rooms/:roomSecret', auth.requireAuth, async (req, res) => {
         const roomSecret = req.params.roomSecret;
         console.log(`[API] User ${req.user.id} deleting room: ${roomSecret.substring(0, 20)}...`);
         
-        await database.removeUserRoom(req.user.id, roomSecret);
+        // Get room name before deletion for logging
+        const rooms = await database.getUserRooms(req.user.id);
+        const room = rooms.find(r => r.room_secret === roomSecret);
+        const roomName = room ? room.room_name : null;
+        
+        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+        const userAgent = req.headers['user-agent'];
+        
+        await database.removeUserRoom(req.user.id, roomSecret, req.user.username, roomName, ip, userAgent);
         
         console.log(`[API] ✅ Room deleted successfully for user ${req.user.id}`);
         res.json({
@@ -186,6 +204,27 @@ router.delete('/me/rooms/:roomSecret', auth.requireAuth, async (req, res) => {
 // ============================================
 // User Management Routes (Admin only)
 // ============================================
+
+/**
+ * GET /api/audit-logs
+ * Get audit logs (super admin only)
+ */
+router.get('/audit-logs', auth.requireSuperAdmin, async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 100;
+        const offset = parseInt(req.query.offset) || 0;
+        
+        const logs = await database.getAuditLogs(limit, offset);
+        
+        res.json({ success: true, logs });
+    } catch (error) {
+        console.error('Get audit logs error:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Errore nel recupero dei log' 
+        });
+    }
+});
 
 /**
  * GET /api/users
@@ -304,6 +343,20 @@ router.post('/users', auth.requireAdmin, async (req, res) => {
 
         const user = await database.getUserById(userId);
 
+        // Log user creation
+        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+        const userAgent = req.headers['user-agent'];
+        await database.logAction(
+            req.user.id, 
+            req.user.username, 
+            'create_user', 
+            'user', 
+            userId, 
+            `Creato utente: ${username}${isAdmin ? ' (Admin)' : ''}`, 
+            ip, 
+            userAgent
+        );
+
         res.status(201).json({
             success: true,
             message: 'Utente creato con successo',
@@ -361,6 +414,27 @@ router.put('/users/:id', auth.requireAdmin, async (req, res) => {
         await database.updateUser(userId, updates);
         const updatedUser = await database.getUserById(userId);
 
+        // Log user update
+        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+        const userAgent = req.headers['user-agent'];
+        const changes = [];
+        if (updates.displayName) changes.push('nome visualizzato');
+        if (updates.email) changes.push('email');
+        if (updates.hasOwnProperty('isAdmin')) changes.push('privilegi admin');
+        if (updates.hasOwnProperty('isActive')) changes.push('stato attivo');
+        if (updates.password) changes.push('password');
+        
+        await database.logAction(
+            req.user.id, 
+            req.user.username, 
+            'update_user', 
+            'user', 
+            userId, 
+            `Modificato utente ${user.username}: ${changes.join(', ')}`, 
+            ip, 
+            userAgent
+        );
+
         res.json({
             success: true,
             message: 'Utente aggiornato con successo',
@@ -408,6 +482,20 @@ router.delete('/users/:id', auth.requireSuperAdmin, async (req, res) => {
         }
 
         await database.deleteUser(userId);
+
+        // Log user deletion
+        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+        const userAgent = req.headers['user-agent'];
+        await database.logAction(
+            req.user.id, 
+            req.user.username, 
+            'delete_user', 
+            'user', 
+            userId, 
+            `Eliminato utente: ${user.username}`, 
+            ip, 
+            userAgent
+        );
 
         res.json({
             success: true,
@@ -515,6 +603,20 @@ router.post('/groups', auth.requireAdmin, async (req, res) => {
         const groupId = await database.createGroup(name, description, parentGroupId);
         const group = await database.getGroupById(groupId);
 
+        // Log group creation
+        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+        const userAgent = req.headers['user-agent'];
+        await database.logAction(
+            req.user.id, 
+            req.user.username, 
+            'create_group', 
+            'group', 
+            groupId, 
+            `Creato gruppo: ${name}`, 
+            ip, 
+            userAgent
+        );
+
         res.status(201).json({
             success: true,
             message: 'Gruppo creato con successo',
@@ -580,6 +682,20 @@ router.delete('/groups/:id', auth.requireAdmin, async (req, res) => {
         }
 
         await database.deleteGroup(groupId);
+
+        // Log group deletion
+        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+        const userAgent = req.headers['user-agent'];
+        await database.logAction(
+            req.user.id, 
+            req.user.username, 
+            'delete_group', 
+            'group', 
+            groupId, 
+            `Eliminato gruppo: ${group.name}`, 
+            ip, 
+            userAgent
+        );
 
         res.json({
             success: true,
@@ -649,6 +765,20 @@ router.post('/groups/:id/members', auth.requireAdmin, async (req, res) => {
 
         await database.addUserToGroup(userId, groupId, isGroupAdmin || false);
 
+        // Log user addition to group
+        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+        const userAgent = req.headers['user-agent'];
+        await database.logAction(
+            req.user.id,
+            req.user.username,
+            'add_user_to_group',
+            'group',
+            groupId,
+            `Aggiunto utente ${user.username} al gruppo ${group.name}${isGroupAdmin ? ' (come admin)' : ''}`,
+            ip,
+            userAgent
+        );
+
         res.status(201).json({
             success: true,
             message: 'Utente aggiunto al gruppo con successo'
@@ -679,7 +809,27 @@ router.delete('/groups/:groupId/members/:userId', auth.requireAdmin, async (req,
         const groupId = parseInt(req.params.groupId);
         const userId = parseInt(req.params.userId);
 
+        // Get group and user info before removal for logging
+        const group = await database.getGroupById(groupId);
+        const user = await database.getUserById(userId);
+
         await database.removeUserFromGroup(userId, groupId);
+
+        // Log user removal from group
+        if (group && user) {
+            const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+            const userAgent = req.headers['user-agent'];
+            await database.logAction(
+                req.user.id,
+                req.user.username,
+                'remove_user_from_group',
+                'group',
+                groupId,
+                `Rimosso utente ${user.username} dal gruppo ${group.name}`,
+                ip,
+                userAgent
+            );
+        }
 
         res.json({
             success: true,

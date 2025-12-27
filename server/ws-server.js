@@ -43,6 +43,7 @@ export default class AuthDropWsServer {
             peer.user = user;
             peer.userId = user.id;
             peer.username = user.username;
+            peer.userAgent = request.headers['user-agent'];
             
             // Get user's groups (including nested subgroups)
             peer.groupIds = await database.getAllGroupIdsForUser(user.id);
@@ -359,7 +360,7 @@ export default class AuthDropWsServer {
         // Save room to database if user is authenticated
         if (peer.userId) {
             console.log(`[DB] Saving room for user ${peer.userId}: ${roomSecret.substring(0, 20)}...`);
-            database.addUserRoom(peer.userId, roomSecret)
+            database.addUserRoom(peer.userId, roomSecret, null, peer.username, peer.ip, peer.userAgent)
                 .then(() => {
                     console.log(`[DB] ✅ Room saved successfully for user ${peer.userId}`);
                 })
@@ -380,7 +381,7 @@ export default class AuthDropWsServer {
         // Save public room to database if user is authenticated
         if (peer.userId) {
             console.log(`[DB] Saving public room for user ${peer.userId}: ${publicRoomId}`);
-            database.addUserRoom(peer.userId, publicRoomId, `Gruppo pubblico: ${publicRoomId}`)
+            database.addUserRoom(peer.userId, publicRoomId, `Gruppo pubblico: ${publicRoomId}`, peer.username, peer.ip, peer.userAgent)
                 .then(() => {
                     console.log(`[DB] ✅ Public room saved successfully for user ${peer.userId}`);
                 })

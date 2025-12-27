@@ -369,6 +369,7 @@
         <div class="tabs">
             <button class="tab active" onclick="switchTab('users')">👥 Utenti</button>
             <button class="tab" onclick="switchTab('groups')">📁 Gruppi</button>
+            <button class="tab" id="auditTab" style="display: none;" onclick="switchTab('audit')">📋 Audit Log</button>
         </div>
 
         <!-- Users Tab -->
@@ -392,6 +393,24 @@
                 </div>
                 
                 <div id="groupsContent" class="loading">Caricamento gruppi...</div>
+            </div>
+        </div>
+
+        <!-- Audit Log Tab -->
+        <div id="audit-tab" class="tab-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Audit Log</h2>
+                    <button class="btn btn-secondary" onclick="loadAuditLogs()">🔄 Aggiorna</button>
+                </div>
+                
+                <div id="auditContent" class="loading">Caricamento audit logs...</div>
+
+                <div style="display: flex; justify-content: center; gap: 10px; margin-top: 20px;" id="auditPagination">
+                    <button class="btn btn-secondary" onclick="loadAuditLogs(currentAuditPage - 1)" id="prevAuditPage" disabled>← Precedente</button>
+                    <span style="color: #999; line-height: 38px;" id="auditPageInfo">Pagina 1</span>
+                    <button class="btn btn-secondary" onclick="loadAuditLogs(currentAuditPage + 1)" id="nextAuditPage">Successiva →</button>
+                </div>
             </div>
         </div>
     </div>
@@ -547,6 +566,11 @@
 
                 document.getElementById('currentUser').textContent = `👤 ${currentUser.displayName || currentUser.username}`;
 
+                // Show audit tab if super admin
+                if (currentUser.isSuperAdmin) {
+                    document.getElementById('auditTab').style.display = 'block';
+                }
+
                 // Load data
                 await loadUsers();
                 await loadGroups();
@@ -593,6 +617,8 @@
                 loadUsers();
             } else if (tab === 'groups') {
                 loadGroups();
+            } else if (tab === 'audit') {
+                loadAuditLogs();
             }
         }
 
@@ -1021,7 +1047,7 @@
                                 <td>${member.email || '-'}</td>
                                 <td>${new Date(member.joined_at).toLocaleDateString('it-IT')}</td>
                                 <td>
-                                    <button class="btn btn-danger btn-small" onclick="removeMember(${groupId}, ${member.user_id}, '${member.username}')">Rimuovi</button>
+                                    <button class="btn btn-danger btn-small" onclick="removeMember(${groupId}, ${member.id}, '${member.username}')">Rimuovi</button>
                                 </td>
                             </tr>
                         `).join('')}
@@ -1069,15 +1095,20 @@
             if (!confirm(`Rimuovere ${username} dal gruppo?`)) return;
 
             try {
+                console.log(`[REMOVE] Removing user ${userId} from group ${groupId}`);
                 const response = await fetch(`/api/groups/${groupId}/members/${userId}`, {
                     method: 'DELETE',
                     credentials: 'include'
                 });
 
+                console.log(`[REMOVE] Response status: ${response.status}`);
                 const data = await response.json();
+                console.log(`[REMOVE] Response data:`, data);
 
                 if (response.ok) {
+                    console.log(`[REMOVE] Reloading group members...`);
                     await loadGroupMembers(groupId);
+                    console.log(`[REMOVE] Members reloaded successfully`);
                 } else {
                     alert(data.error || 'Errore nella rimozione membro');
                 }
@@ -1215,6 +1246,98 @@
 
         function closeUserDetailsModal() {
             document.getElementById('userDetailsModal').classList.remove('show');
+        }
+
+        // Audit Log Functions
+        let currentAuditPage = 0;
+        const auditLogsPerPage = 50;
+
+        async function loadAuditLogs(page = 0) {
+            if (!currentUser || !currentUser.isSuperAdmin) {
+                return;
+            }
+
+            currentAuditPage = page;
+            const content = document.getElementById('auditContent');
+            content.className = 'loading';
+            content.textContent = 'Caricamento audit logs...';
+
+            try {
+                const offset = page * auditLogsPerPage;
+                const response = await fetch(`/api/audit-logs?limit=${auditLogsPerPage}&offset=${offset}`, {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) throw new Error('Failed to load audit logs');
+
+                const data = await response.json();
+                content.className = '';
+
+                if (!data.logs || data.logs.length === 0) {
+                    content.innerHTML = '<div style="text-align: center; color: #999; padding: 40px;">Nessun log disponibile</div>';
+                    document.getElementById('prevAuditPage').disabled = true;
+                    document.getElementById('nextAuditPage').disabled = true;
+                    return;
+                }
+
+                const table = `
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th style="text-align: left; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">Data/Ora</th>
+                                <th style="text-align: left; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">Utente</th>
+                                <th style="text-align: left; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">Azione</th>
+                                <th style="text-align: left; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">Risorsa</th>
+                                <th style="text-align: left; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">Dettagli</th>
+                                <th style="text-align: left; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">IP</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.logs.map(log => `
+                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    <td style="padding: 12px; font-size: 0.85rem; color: #999;">
+                                        ${new Date(log.created_at).toLocaleString('it-IT', {
+                                            day: '2-digit',
+                                            month: '2-digit',
+                                            year: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}
+                                    </td>
+                                    <td style="padding: 12px;">
+                                        ${log.username || '<i>Utente eliminato</i>'}
+                                    </td>
+                                    <td style="padding: 12px;">
+                                        <span style="background: rgba(25, 118, 210, 0.2); color: #64B5F6; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;">
+                                            ${log.action}
+                                        </span>
+                                    </td>
+                                    <td style="padding: 12px; font-size: 0.9rem; color: #ddd;">
+                                        ${log.resource_type ? `${log.resource_type}${log.resource_id ? ` #${log.resource_id}` : ''}` : '-'}
+                                    </td>
+                                    <td style="padding: 12px; font-size: 0.85rem; color: #aaa; max-width: 300px; overflow: hidden; text-overflow: ellipsis;" title="${log.details || ''}">
+                                        ${log.details || '-'}
+                                    </td>
+                                    <td style="padding: 12px; font-size: 0.85rem; color: #999;">
+                                        ${log.ip_address || '-'}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+
+                content.innerHTML = table;
+
+                // Update pagination
+                document.getElementById('prevAuditPage').disabled = page === 0;
+                document.getElementById('nextAuditPage').disabled = data.logs.length < auditLogsPerPage;
+                document.getElementById('auditPageInfo').textContent = `Pagina ${page + 1}`;
+            } catch (error) {
+                console.error('Load audit logs error:', error);
+                content.className = '';
+                content.innerHTML = '<div class="alert alert-error">Errore nel caricamento degli audit logs</div>';
+            }
         }
     </script>
 </body>
