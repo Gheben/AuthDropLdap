@@ -471,10 +471,7 @@ footer {
 footer .logo {
     --icon-size: 90px;
     margin-bottom: 12px;
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--primary-color);
     margin-top: -10px;
     filter: drop-shadow(0 2px 4px rgba(25, 118, 210, 0.3));
 }
@@ -1001,9 +998,18 @@ body {
     --shadow-color-secondary-cover-rgb: var(--lt-shadow-color-secondary-cover-rgb);
     --shadow-color-dialog-rgb: var(--lt-shadow-color-dialog-rgb);
     --shadow-color-dialog-cover-rgb: var(--lt-shadow-color-dialog-cover-rgb);
-    
-    /* Gradiente personalizzato GBDrop */
+}
+
+/* Gradiente personalizzato GBDrop Light */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background: linear-gradient(135deg, #e3f2fd 0%, #fff3e0 100%);
+    z-index: -1;
 }
 
 /* Dark theme colors */
@@ -1018,8 +1024,10 @@ body.dark-theme {
 
     --shadow-color-secondary-rgb: var(--dt-shadow-color-secondary-rgb);
     --shadow-color-secondary-cover-rgb: var(--dt-shadow-color-secondary-cover-rgb);
-    
-    /* Gradiente scuro personalizzato GBDrop */
+}
+
+/* Gradiente personalizzato GBDrop Dark */
+body.dark-theme::before {
     background: linear-gradient(135deg, #0d47a1 0%, #e65100 100%);
 }
     --shadow-color-dialog-rgb: var(--dt-shadow-color-dialog-rgb);
