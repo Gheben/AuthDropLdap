@@ -105,6 +105,15 @@ AuthDrop/
 ### Accoppiamento Dispositivi
 Puoi accoppiare permanentemente i tuoi dispositivi inserendo una stanza condivisa, anche se sono su reti diverse.
 
+### Reset Database
+Per resettare il database a uno stato pulito (solo super admin):
+
+```bash
+node reset-database.js
+```
+
+Questo crea un nuovo database con solo l'utente super admin configurato in `.env`.
+
 ## FAQ
 
 **È sicuro?**  

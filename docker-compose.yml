@@ -1,6 +1,27 @@
 version: '3.8'
 
 services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: authdrop-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-authdrop}
+      POSTGRES_USER: ${POSTGRES_USER:-authdrop}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-authdrop123}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - authdrop-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-authdrop}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # PORTA NON ESPOSTA - solo comunicazione interna tra container
+
+  # AuthDrop Application
   authdrop:
     build:
       context: .
@@ -9,21 +30,28 @@ services:
     restart: unless-stopped
     ports:
       - "3441:3441"
-    volumes:
-      # Usa un named volume per persistere il database SQLite
-      - authdrop-data:/home/node/app
     env_file:
       - .env
     environment:
       - NODE_ENV=production
       - PORT=3441
       - DEBUG_MODE=false
+      # Database PostgreSQL (connessione interna)
+      - DB_TYPE=postgres
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB:-authdrop}
+      - DB_USER=${POSTGRES_USER:-authdrop}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-authdrop123}
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3441"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 5s
+      start_period: 10s
     networks:
       - authdrop-network
 
@@ -32,5 +60,5 @@ networks:
     driver: bridge
 
 volumes:
-  authdrop-data:
+  postgres-data:
     driver: local

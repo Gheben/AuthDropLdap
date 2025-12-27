@@ -6,6 +6,11 @@ npm-debug.log*
 .env
 .env.local
 
+# Database backups (don't commit old data)
+authdrop.db.backup
+authdrop.db.old
+authdrop-clean.db
+
 # OS files
 .DS_Store
 Thumbs.db
