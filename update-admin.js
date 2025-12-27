@@ -3,8 +3,8 @@ import database from './server/database.js';
 import bcrypt from 'bcrypt';
 
 async function updateAdmin() {
-    const username = process.env.SUPER_ADMIN_USERNAME || 'guido';
-    const password = process.env.SUPER_ADMIN_PASSWORD || 'b@ll@rini1993';
+    const username = process.env.SUPER_ADMIN_USERNAME || 'admin';
+    const password = process.env.SUPER_ADMIN_PASSWORD || 'admin1234';
     
     console.log(`Aggiornamento super admin con username: ${username}`);
     
