@@ -352,6 +352,10 @@ export default class AuthDropWsServer {
     }
 
     _joinSecretRoom(peer, roomSecret) {
+        // Leave IP room when joining a secret room
+        // This prevents the peer from appearing twice (once in IP room, once in secret room)
+        this._leaveIpRoom(peer);
+        
         this._joinRoom(peer, 'secret', roomSecret);
 
         // add secret to peer
