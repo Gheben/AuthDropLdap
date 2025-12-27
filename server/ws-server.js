@@ -471,6 +471,8 @@ export default class AuthDropWsServer {
         // - IP room: serve il controllo (dispositivi devono essere nello stesso gruppo)
         // - Secret/Public room: NO controllo (lo scopo è condividere tra utenti diversi)
         const requireGroupCheck = roomType === 'ip';
+        
+        console.log(`[NOTIFY] Room ${roomId.substring(0, 20)}... | Type: ${roomType} | Check groups: ${requireGroupCheck} | Peer: ${peer.username || peer.id}`);
 
         // notify all other peers that peer joined
         for (const otherPeerId in this._rooms[roomId]) {
@@ -479,7 +481,12 @@ export default class AuthDropWsServer {
 
             // Se è IP room, verifica che condividano almeno un gruppo
             // Se è Secret/Public room, notifica sempre
-            if (requireGroupCheck && !shareGroup(peer, otherPeer)) continue;
+            if (requireGroupCheck && !shareGroup(peer, otherPeer)) {
+                console.log(`[NOTIFY] ❌ Skipping ${otherPeer.username || otherPeerId} - no shared groups`);
+                continue;
+            }
+            
+            console.log(`[NOTIFY] ✅ Notifying ${otherPeer.username || otherPeerId} about new peer`);
 
             let msg = {
                 type: 'peer-joined',
@@ -500,10 +507,16 @@ export default class AuthDropWsServer {
             
             // Se è IP room, includi solo peer nello stesso gruppo
             // Se è Secret/Public room, includi tutti
-            if (requireGroupCheck && !shareGroup(peer, otherPeer)) continue;
+            if (requireGroupCheck && !shareGroup(peer, otherPeer)) {
+                console.log(`[NOTIFY] ❌ Skipping ${otherPeer.username || otherPeerId} from peers list - no shared groups`);
+                continue;
+            }
             
+            console.log(`[NOTIFY] ✅ Adding ${otherPeer.username || otherPeerId} to peers list`);
             otherPeers.push(otherPeer.getInfo());
         }
+        
+        console.log(`[NOTIFY] Sending ${otherPeers.length} peers to ${peer.username || peer.id}`);
 
         let msg = {
             type: 'peers',
