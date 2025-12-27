@@ -42,7 +42,7 @@ npm install
 npm start
 ```
 
-Il server sarà disponibile su `http://localhost:3000`
+Il server sarà disponibile su `http://localhost:3441`
 
 ## Sviluppo
 
@@ -57,7 +57,7 @@ npm run dev
 
 ```bash
 docker build -t AuthDrop .
-docker run -d --restart=unless-stopped --name=AuthDrop -p 127.0.0.1:3000:3000 AuthDrop
+docker run -d --restart=unless-stopped --name=AuthDrop -p 127.0.0.1:3441:3441 AuthDrop
 ```
 
 ### Con Node.js
@@ -87,15 +87,6 @@ AuthDrop/
 
 ### Accoppiamento Dispositivi
 Puoi accoppiare permanentemente i tuoi dispositivi inserendo una stanza condivisa, anche se sono su reti diverse.
-
-### Nome Utente Automatico
-AuthDrop supporta tre modi per impostare automaticamente il tuo nome:
-
-1. **Script PowerShell** (Windows): Usa `launch-AuthDrop.ps1` per aprire il browser con il tuo nome utente già impostato
-2. **Parametro URL**: Apri `http://localhost:3000?username=TuoNome`
-3. **Bookmarklet**: Salva un segnalibro per impostare il nome con un click
-
-Vedi [GUIDA_NOME_UTENTE.md](GUIDA_NOME_UTENTE.md) per i dettagli.
 
 ## FAQ
 

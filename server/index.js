@@ -5,9 +5,9 @@ const configBuilder = (conf) => {
     // Setup config
     conf.debugMode = process.env.DEBUG_MODE === "true";
 
-    conf.port = process.env.PORT || 3000;
+    conf.port = process.env.PORT || 3441;
     if (conf.port < 1024 || conf.port > 65535) {
-        conf.port = 3000;
+        conf.port = 3441;
     }
 
     conf.wsFallback = process.env.WS_FALLBACK === 'true';
