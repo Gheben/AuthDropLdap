@@ -29,6 +29,7 @@ Il sistema registra automaticamente le seguenti azioni:
 
 #### Gestione Gruppi
 - **create_group** - Nuovo gruppo creato
+- **update_group** - Modifiche al gruppo (nome, descrizione, gerarchia sottogruppi)
 - **delete_group** - Rimozione gruppo dal sistema
 - **add_user_to_group** - Utente aggiunto a un gruppo
 - **remove_user_from_group** - Utente rimosso da un gruppo

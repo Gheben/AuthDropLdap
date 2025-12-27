@@ -638,7 +638,11 @@ router.post('/groups', auth.requireAdmin, async (req, res) => {
 router.put('/groups/:id', auth.requireAdmin, async (req, res) => {
     try {
         const groupId = parseInt(req.params.id);
-        const updates = req.body;
+        const updates = {
+            name: req.body.name,
+            description: req.body.description,
+            parent_group_id: req.body.parentGroupId
+        };
 
         const group = await database.getGroupById(groupId);
         if (!group) {
@@ -650,6 +654,38 @@ router.put('/groups/:id', auth.requireAdmin, async (req, res) => {
 
         await database.updateGroup(groupId, updates);
         const updatedGroup = await database.getGroupById(groupId);
+
+        // Log group update
+        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+        const userAgent = req.headers['user-agent'];
+        const changes = [];
+        if (updates.name) changes.push('nome');
+        if (updates.description !== undefined) changes.push('descrizione');
+        if (updates.parent_group_id !== undefined) {
+            if (updates.parent_group_id === null) {
+                // Se viene rimosso il gruppo padre, indicare da quale gruppo viene rimosso
+                if (group.parent_group_id) {
+                    const oldParentGroup = await database.getGroupById(group.parent_group_id);
+                    changes.push(`rimosso da sottogruppo "${oldParentGroup ? oldParentGroup.name : 'sconosciuto'}"`);
+                } else {
+                    changes.push('rimosso da sottogruppo');
+                }
+            } else {
+                const parentGroup = await database.getGroupById(updates.parent_group_id);
+                changes.push(`spostato sotto il gruppo "${parentGroup ? parentGroup.name : 'sconosciuto'}"`);
+            }
+        }
+        
+        await database.logAction(
+            req.user.id,
+            req.user.username,
+            'update_group',
+            'group',
+            groupId,
+            `Modificato gruppo ${group.name}: ${changes.join(', ')}`,
+            ip,
+            userAgent
+        );
 
         res.json({
             success: true,
