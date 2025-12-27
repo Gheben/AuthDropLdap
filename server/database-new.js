@@ -14,6 +14,322 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 class Database {
+        // === USER METHODS ===
+        async getUserByUsername(username) {
+            const rows = await this.query('SELECT * FROM users WHERE username = ?', [username]);
+            return rows && rows[0] ? rows[0] : null;
+        }
+
+        async getUserById(id) {
+            const rows = await this.query('SELECT * FROM users WHERE id = ?', [id]);
+            return rows && rows[0] ? rows[0] : null;
+        }
+
+        async getAllUsers() {
+            return await this.query('SELECT id, username, display_name, email, is_admin, is_super_admin, is_active, created_at FROM users');
+        }
+
+        async createUser(username, password, displayName = null, email = null, isAdmin = false) {
+            const hash = await bcrypt.hash(password, 10);
+            const result = await this.query(
+                'INSERT INTO users (username, password_hash, display_name, email, is_admin) VALUES (?, ?, ?, ?, ?)',
+                [username, hash, displayName || username, email, isAdmin ? true : false]
+            );
+            if (this.dbType === 'postgres') {
+                const rows = await this.query('SELECT id FROM users WHERE username = ?', [username]);
+                return rows && rows[0] ? rows[0].id : null;
+            } else {
+                return result.lastID;
+            }
+        }
+
+        async updateUser(id, updates) {
+            let fields = [];
+            let values = [];
+            if (updates.username !== undefined) {
+                fields.push('username = ?');
+                values.push(updates.username);
+            }
+            if (updates.password !== undefined && updates.password !== '') {
+                const hash = await bcrypt.hash(updates.password, 10);
+                fields.push('password_hash = ?');
+                values.push(hash);
+            }
+            if (updates.display_name !== undefined) {
+                fields.push('display_name = ?');
+                values.push(updates.display_name);
+            }
+            if (updates.email !== undefined) {
+                fields.push('email = ?');
+                values.push(updates.email);
+            }
+            if (updates.is_admin !== undefined) {
+                fields.push('is_admin = ?');
+                values.push(updates.is_admin ? true : false);
+            }
+            if (updates.is_active !== undefined) {
+                fields.push('is_active = ?');
+                values.push(updates.is_active ? true : false);
+            }
+            fields.push('updated_at = CURRENT_TIMESTAMP');
+            values.push(id);
+            const sql = `UPDATE users SET ${fields.join(', ')} WHERE id = ?`;
+            await this.query(sql, values);
+        }
+
+        async deleteUser(id) {
+            await this.query('DELETE FROM users WHERE id = ? AND is_super_admin = FALSE', [id]);
+        }
+
+        async verifyPassword(username, password) {
+            const user = await this.getUserByUsername(username);
+            if (!user || !user.is_active) return null;
+            const match = await bcrypt.compare(password, user.password_hash);
+            return match ? user : null;
+        }
+
+        // === GROUP METHODS ===
+        async getAllGroups() {
+            return await this.query('SELECT * FROM groups ORDER BY name');
+        }
+
+        async getGroupById(id) {
+            const rows = await this.query('SELECT * FROM groups WHERE id = ?', [id]);
+            return rows && rows[0] ? rows[0] : null;
+        }
+
+        async createGroup(name, description = null, parentGroupId = null) {
+            const result = await this.query(
+                'INSERT INTO groups (name, description, parent_group_id) VALUES (?, ?, ?)',
+                [name, description, parentGroupId]
+            );
+            if (this.dbType === 'postgres') {
+                const rows = await this.query('SELECT id FROM groups WHERE name = ?', [name]);
+                return rows && rows[0] ? rows[0].id : null;
+            } else {
+                return result.lastID;
+            }
+        }
+
+        async updateGroup(id, updates) {
+            let fields = [];
+            let values = [];
+            if (updates.name !== undefined) {
+                fields.push('name = ?');
+                values.push(updates.name);
+            }
+            if (updates.description !== undefined) {
+                fields.push('description = ?');
+                values.push(updates.description);
+            }
+            if (updates.parent_group_id !== undefined) {
+                fields.push('parent_group_id = ?');
+                values.push(updates.parent_group_id);
+            }
+            fields.push('updated_at = CURRENT_TIMESTAMP');
+            values.push(id);
+            const sql = `UPDATE groups SET ${fields.join(', ')} WHERE id = ?`;
+            await this.query(sql, values);
+        }
+
+        async deleteGroup(id) {
+            await this.query('DELETE FROM groups WHERE id = ?', [id]);
+        }
+
+        // === GROUP MEMBERS METHODS ===
+        async addUserToGroup(userId, groupId, isGroupAdmin = false) {
+            if (this.dbType === 'postgres') {
+                await this.query(
+                    'INSERT INTO group_members (user_id, group_id, is_group_admin) VALUES (?, ?, ?) ON CONFLICT (group_id, user_id) DO NOTHING',
+                    [userId, groupId, isGroupAdmin]
+                );
+            } else {
+                await this.query(
+                    'INSERT OR IGNORE INTO group_members (user_id, group_id, is_group_admin) VALUES (?, ?, ?)',
+                    [userId, groupId, isGroupAdmin]
+                );
+            }
+        }
+
+        async removeUserFromGroup(userId, groupId) {
+            await this.query('DELETE FROM group_members WHERE user_id = ? AND group_id = ?', [userId, groupId]);
+        }
+
+        async getUserGroups(userId) {
+            return await this.query(
+                `SELECT g.*, gm.is_group_admin
+                 FROM groups g
+                 JOIN group_members gm ON g.id = gm.group_id
+                 WHERE gm.user_id = ?
+                 ORDER BY g.name`,
+                [userId]
+            );
+        }
+
+        async getGroupMembers(groupId) {
+            return await this.query(
+                `SELECT u.id, u.username, u.display_name, u.email, gm.is_group_admin, gm.added_at as joined_at
+                 FROM users u
+                 JOIN group_members gm ON u.id = gm.user_id
+                 WHERE gm.group_id = ? AND u.is_active = TRUE
+                 ORDER BY u.username`,
+                [groupId]
+            );
+        }
+
+        async getAllGroupIdsForUser(userId) {
+            const userGroups = await this.getUserGroups(userId);
+            const groupIds = new Set(userGroups.map(g => g.id));
+            for (const group of userGroups) {
+                const childGroups = await this.getChildGroups(group.id);
+                childGroups.forEach(g => groupIds.add(g.id));
+            }
+            return Array.from(groupIds);
+        }
+
+        async getChildGroups(parentId) {
+            return await this.query(
+                `WITH RECURSIVE child_groups AS (
+                    SELECT id, name, parent_group_id FROM groups WHERE parent_group_id = ?
+                    UNION ALL
+                    SELECT g.id, g.name, g.parent_group_id 
+                    FROM groups g
+                    JOIN child_groups cg ON g.parent_group_id = cg.id
+                )
+                SELECT * FROM child_groups`,
+                [parentId]
+            );
+        }
+
+        // === PAIRED DEVICES METHODS ===
+        async addPairedDevice(userId, deviceName, deviceType, pairKey, username = null, ip = null, userAgent = null) {
+            if (this.dbType === 'postgres') {
+                await this.query(
+                    `INSERT INTO paired_devices (user_id, device_name, device_type, pair_key, created_at)
+                     VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+                     ON CONFLICT (pair_key) DO UPDATE SET device_name = EXCLUDED.device_name, device_type = EXCLUDED.device_type, created_at = CURRENT_TIMESTAMP`,
+                    [userId, deviceName, deviceType, pairKey]
+                );
+            } else {
+                await this.query(
+                    `INSERT OR REPLACE INTO paired_devices (user_id, device_name, device_type, pair_key, created_at)
+                     VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+                    [userId, deviceName, deviceType, pairKey]
+                );
+            }
+            // Optionally log action (if username provided)
+            if (username) {
+                await this.logAction(
+                    userId,
+                    username,
+                    'pair_device',
+                    'device',
+                    null,
+                    `Accoppiato dispositivo: ${deviceName} (${deviceType})`,
+                    ip,
+                    userAgent
+                );
+            }
+        }
+
+        async getPairedDevices(userId) {
+            return await this.query(
+                `SELECT * FROM paired_devices WHERE user_id = ? ORDER BY created_at DESC`,
+                [userId]
+            );
+        }
+
+        async removePairedDevice(userId, pairKey, username = null, deviceName = null, ip = null, userAgent = null) {
+            await this.query('DELETE FROM paired_devices WHERE user_id = ? AND pair_key = ?', [userId, pairKey]);
+            if (username) {
+                await this.logAction(
+                    userId,
+                    username,
+                    'remove_device',
+                    'device',
+                    null,
+                    `Rimosso dispositivo${deviceName ? `: ${deviceName}` : ''}`,
+                    ip,
+                    userAgent
+                );
+            }
+        }
+
+        // === USER ROOMS METHODS ===
+        async addUserRoom(userId, roomSecret, roomName = null, username = null, ip = null, userAgent = null) {
+            if (this.dbType === 'postgres') {
+                await this.query(
+                    `INSERT INTO user_rooms (user_id, room_secret, room_name, last_accessed, created_at)
+                     VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                     ON CONFLICT (user_id, room_secret) DO UPDATE SET room_name = EXCLUDED.room_name, last_accessed = CURRENT_TIMESTAMP`,
+                    [userId, roomSecret, roomName]
+                );
+            } else {
+                await this.query(
+                    `INSERT OR REPLACE INTO user_rooms (user_id, room_secret, room_name, last_accessed)
+                     VALUES (?, ?, ?, CURRENT_TIMESTAMP)`,
+                    [userId, roomSecret, roomName]
+                );
+            }
+            if (username) {
+                await this.logAction(
+                    userId,
+                    username,
+                    'access_room',
+                    'room',
+                    null,
+                    `Accesso stanza${roomName ? `: ${roomName}` : ''}`,
+                    ip,
+                    userAgent
+                );
+            }
+        }
+
+        async getUserRooms(userId) {
+            return await this.query(
+                `SELECT * FROM user_rooms WHERE user_id = ? ORDER BY last_accessed DESC`,
+                [userId]
+            );
+        }
+
+        async removeUserRoom(userId, roomSecret, username = null, roomName = null, ip = null, userAgent = null) {
+            await this.query('DELETE FROM user_rooms WHERE user_id = ? AND room_secret = ?', [userId, roomSecret]);
+            if (username) {
+                await this.logAction(
+                    userId,
+                    username,
+                    'remove_room',
+                    'room',
+                    null,
+                    `Rimossa stanza${roomName ? `: ${roomName}` : ''}`,
+                    ip,
+                    userAgent
+                );
+            }
+        }
+
+        // === AUDIT LOG METHODS ===
+        async logAction(userId, username, action, resourceType = null, resourceId = null, details = null, ipAddress = null, userAgent = null) {
+            await this.query(
+                `INSERT INTO audit_logs (user_id, username, action, resource_type, resource_id, details, ip_address, user_agent)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                [userId, username, action, resourceType, resourceId, details, ipAddress, userAgent]
+            );
+        }
+
+        async getAuditLogs(limit = 100, offset = 0) {
+            return await this.query(
+                `SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+                [limit, offset]
+            );
+        }
+
+        async getAuditLogsByUser(userId, limit = 50) {
+            return await this.query(
+                `SELECT * FROM audit_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT ?`,
+                [userId, limit]
+            );
+        }
     constructor() {
         const dbType = process.env.DB_TYPE || 'sqlite';
         this.dbType = dbType;
