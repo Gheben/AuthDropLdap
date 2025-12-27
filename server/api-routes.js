@@ -411,19 +411,41 @@ router.put('/users/:id', auth.requireAdmin, async (req, res) => {
             });
         }
 
-        await database.updateUser(userId, updates);
+        // Convert camelCase to snake_case for database
+        const dbUpdates = {};
+        if (updates.username !== undefined) dbUpdates.username = updates.username;
+        if (updates.displayName !== undefined) dbUpdates.display_name = updates.displayName;
+        if (updates.email !== undefined) dbUpdates.email = updates.email;
+        if (updates.password !== undefined) dbUpdates.password = updates.password;
+        if (updates.isAdmin !== undefined) dbUpdates.is_admin = updates.isAdmin;
+        if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
+
+        await database.updateUser(userId, dbUpdates);
         const updatedUser = await database.getUserById(userId);
 
-        // Log user update
+        // Log user update with details
         const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
         const userAgent = req.headers['user-agent'];
         const changes = [];
-        if (updates.username) changes.push('username');
-        if (updates.displayName) changes.push('nome visualizzato');
-        if (updates.email) changes.push('email');
-        if (updates.hasOwnProperty('isAdmin')) changes.push('privilegi admin');
-        if (updates.hasOwnProperty('isActive')) changes.push('stato attivo');
-        if (updates.password) changes.push('password');
+        
+        if (updates.username && updates.username !== user.username) {
+            changes.push(`username: '${user.username}' → '${updates.username}'`);
+        }
+        if (updates.displayName !== undefined && updates.displayName !== user.display_name) {
+            changes.push(`nome: '${user.display_name || '(vuoto)'}' → '${updates.displayName || '(vuoto)'}'`);
+        }
+        if (updates.email !== undefined && updates.email !== user.email) {
+            changes.push(`email: '${user.email || '(vuota)'}' → '${updates.email || '(vuota)'}'`);
+        }
+        if (updates.hasOwnProperty('isAdmin') && updates.isAdmin !== !!user.is_admin) {
+            changes.push(`admin: ${user.is_admin ? 'sì' : 'no'} → ${updates.isAdmin ? 'sì' : 'no'}`);
+        }
+        if (updates.hasOwnProperty('isActive') && updates.isActive !== !!user.is_active) {
+            changes.push(`attivo: ${user.is_active ? 'sì' : 'no'} → ${updates.isActive ? 'sì' : 'no'}`);
+        }
+        if (updates.password) {
+            changes.push('password modificata');
+        }
         
         await database.logAction(
             req.user.id, 
@@ -431,7 +453,7 @@ router.put('/users/:id', auth.requireAdmin, async (req, res) => {
             'update_user', 
             'user', 
             userId, 
-            `Modificato utente ${user.username}: ${changes.join(', ')}`, 
+            `Modificato utente '${user.username}': ${changes.join(', ')}`, 
             ip, 
             userAgent
         );
