@@ -238,8 +238,35 @@ class FooterUI {
         Events.fire('self-display-name-changed', displayNameSaved);
     }
 
+    _getUrlParameter(name) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(name);
+    }
+
+    async _checkUrlParameters() {
+        // Check if username is provided via URL parameter
+        const usernameFromUrl = this._getUrlParameter('username') || this._getUrlParameter('displayName');
+        
+        if (usernameFromUrl) {
+            const decodedUsername = decodeURIComponent(usernameFromUrl);
+            console.log("Username from URL parameter:", decodedUsername);
+            
+            // Save it automatically
+            await this._saveDisplayName(decodedUsername);
+            
+            // Clean URL after saving (optional, to avoid sharing URL with username)
+            if (window.history && window.history.replaceState) {
+                const cleanUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
+            }
+        }
+    }
+
     async _onDisplayName(displayNameServer){
-        // load saved displayname first to prevent flickering
+        // Check URL parameters first
+        await this._checkUrlParameters();
+        
+        // load saved displayname to prevent flickering
         await this._loadSavedDisplayName();
 
         // set original display name as placeholder

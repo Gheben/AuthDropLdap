@@ -1,14 +1,19 @@
 # GBDrop
 
-**GBDrop** è una versione personalizzata di [PairDrop](https://github.com/schlagmichdoch/pairdrop) - un'applicazione per il trasferimento di file peer-to-peer, simile ad AirDrop.
+**GBDrop** è un'applicazione web per il trasferimento di file peer-to-peer che funziona direttamente nel browser, senza bisogno di installazione.
 
 ## Caratteristiche
 
 - 🔄 Trasferimento file peer-to-peer via WebRTC
-- 🌐 Funziona nel browser web (PWA)
-- 🔒 Connessione diretta e sicura
+- 🌐 Funziona completamente nel browser (PWA)
+- 🔒 Connessione diretta e sicura tra dispositivi
 - 📱 Supporto multi-piattaforma (Windows, Mac, Linux, iOS, Android)
-- 🎨 Interfaccia personalizzata con loghi GBDrop
+- 💾 Nessun limite di dimensione file
+- 🚀 Velocità di trasferimento limitata solo dalla tua rete
+- 🌍 Supporto per 35+ lingue
+- 🎨 Tema chiaro e scuro automatico
+- 📴 Funziona offline dopo la prima visita
+- 🔐 Privacy totale: i file non passano mai da server esterni
 
 ## Tecnologie
 
@@ -71,17 +76,45 @@ gbdrop/
 └── README.md        # Questo file
 ```
 
-## Personalizzazioni
+## Come Funziona
 
-Questa versione include:
-- ✅ Loghi personalizzati GBDrop
-- ✅ Colori e temi personalizzati
-- ✅ Configurazioni specifiche
+1. Apri GBDrop nel browser su tutti i dispositivi che vuoi connettere
+2. I dispositivi sulla stessa rete locale si rilevano automaticamente
+3. Clicca sul dispositivo di destinazione e seleziona i file da inviare
+4. Il trasferimento avviene direttamente tra i dispositivi (P2P)
 
-## Crediti
+## Funzionalità Avanzate
 
-Basato su [PairDrop](https://github.com/schlagmichdoch/pairdrop) di schlagmichdoch.
+### Accoppiamento Dispositivi
+Puoi accoppiare permanentemente i tuoi dispositivi inserendo una stanza condivisa, anche se sono su reti diverse.
+
+### Nome Utente Automatico
+GBDrop supporta tre modi per impostare automaticamente il tuo nome:
+
+1. **Script PowerShell** (Windows): Usa `launch-gbdrop.ps1` per aprire il browser con il tuo nome utente già impostato
+2. **Parametro URL**: Apri `http://localhost:3000?username=TuoNome`
+3. **Bookmarklet**: Salva un segnalibro per impostare il nome con un click
+
+Vedi [GUIDA_NOME_UTENTE.md](GUIDA_NOME_UTENTE.md) per i dettagli.
+
+## FAQ
+
+**È sicuro?**  
+Sì, i file vengono trasferiti direttamente tra i tuoi dispositivi usando WebRTC. Non passano da server esterni.
+
+**Funziona senza internet?**  
+Sì, sulla rete locale funziona anche offline. Serve internet solo per il server di signaling iniziale.
+
+**Quali browser supporta?**  
+Tutti i browser moderni: Chrome, Edge, Firefox, Safari, Opera.
+
+**Posso usarlo con dispositivi su reti diverse?**  
+Sì, usando la funzione di accoppiamento con codice stanza condiviso.
+
+## Autore
+
+Guido Ballarini - [git.ballarini.app](https://git.ballarini.app/guido/GBDrop)
 
 ## Licenza
 
-GPL-3.0 - Vedi LICENSE
+GPL-3.0
