@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import crypto from "crypto"
 import process from "process";
 

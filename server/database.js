@@ -140,14 +140,17 @@ class Database {
                 if (err) {
                     reject(err);
                 } else if (!row) {
-                    // Crea admin di default: admin/admin
-                    bcrypt.hash('admin', 10, (err, hash) => {
+                    // Leggi credenziali da variabili d'ambiente o usa default
+                    const adminUsername = process.env.SUPER_ADMIN_USERNAME || 'admin';
+                    const adminPassword = process.env.SUPER_ADMIN_PASSWORD || 'admin';
+                    
+                    bcrypt.hash(adminPassword, 10, (err, hash) => {
                         if (err) {
                             reject(err);
                         } else {
                             this.db.run(
                                 'INSERT INTO users (username, password_hash, display_name, is_admin, is_super_admin) VALUES (?, ?, ?, ?, ?)',
-                                ['admin', hash, 'Administrator', 1, 1],
+                                [adminUsername, hash, 'Administrator', 1, 1],
                                 (err) => {
                                     if (err) {
                                         // Ignora errore UNIQUE constraint (admin già esiste)
@@ -158,7 +161,7 @@ class Database {
                                             reject(err);
                                         }
                                     } else {
-                                        console.log('Default super admin created: admin/admin');
+                                        console.log(`Default super admin created: ${adminUsername}`);
                                         resolve();
                                     }
                                 }

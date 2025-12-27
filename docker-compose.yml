@@ -12,6 +12,8 @@ services:
     volumes:
       # Usa un named volume per persistere il database SQLite
       - authdrop-data:/home/node/app
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
       - PORT=3441
