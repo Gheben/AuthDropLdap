@@ -357,6 +357,26 @@ LDAP_USER_SEARCH_FILTER=(&(objectClass=user)(!(userAccountControl:1.2.840.113556
 - ✅ **Audit logging** for all LDAP operations
 - ✅ **Visual indicators** (🔗 icon) for LDAP-imported entities
 - ✅ **Dual authentication** (LDAP users use AD credentials, local users use AuthDrop passwords)
+- ✅ **Auto-sync** (optional automatic synchronization at scheduled intervals)
+
+#### Auto-Sync Configuration
+
+Enable automatic LDAP synchronization by adding these variables to your `.env`:
+
+```env
+# Enable automatic sync from Active Directory
+LDAP_AUTO_SYNC=true
+
+# Sync interval in seconds (default: 3600 = 1 hour)
+# Examples: 3600 (1h), 7200 (2h), 86400 (24h)
+LDAP_SYNC_INTERVAL=3600
+```
+
+When enabled:
+- Initial sync runs 30 seconds after server start
+- Subsequent syncs run automatically at the specified interval
+- All sync operations are logged in the audit log
+- Orphaned users/groups are automatically removed
 
 #### Running Migrations
 

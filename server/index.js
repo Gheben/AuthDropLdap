@@ -48,20 +48,63 @@ const configBuilder = (conf) => {
 
 import AuthDropServer from "./server.js";
 import AuthDropWsServer from "./ws-server.js";
+import LDAPSync from "./ldap-sync.js";
 
 const conf = configBuilder({});
 
 const server = new AuthDropServer(conf.port, conf);
 const wsServer = new AuthDropWsServer(server.getServer(), conf);
 
+// LDAP Auto-Sync Setup
+let ldapSyncInterval = null;
+if (process.env.LDAP_ENABLED === 'true' && process.env.LDAP_AUTO_SYNC === 'true') {
+    const syncIntervalSeconds = parseInt(process.env.LDAP_SYNC_INTERVAL || '3600');
+    const syncIntervalMs = syncIntervalSeconds * 1000;
+    
+    console.log(`🔄 LDAP Auto-Sync enabled: running every ${syncIntervalSeconds} seconds (${syncIntervalSeconds / 60} minutes)`);
+    
+    // Function to perform sync
+    const performAutoSync = async () => {
+        try {
+            console.log(`[${new Date().toISOString()}] Starting automatic LDAP sync...`);
+            const ldapSync = new LDAPSync(server.app.locals.db);
+            const result = await ldapSync.fullSync(false); // dryRun = false
+            console.log(`[${new Date().toISOString()}] Auto-sync completed:`, {
+                usersImported: result.usersImported,
+                usersUpdated: result.usersUpdated,
+                usersRemoved: result.usersRemoved,
+                groupsImported: result.groupsImported,
+                groupsUpdated: result.groupsUpdated,
+                groupsRemoved: result.groupsRemoved
+            });
+        } catch (error) {
+            console.error(`[${new Date().toISOString()}] Auto-sync error:`, error.message);
+        }
+    };
+    
+    // Run initial sync after 30 seconds (give time for server to fully start)
+    setTimeout(performAutoSync, 30000);
+    
+    // Schedule recurring sync
+    ldapSyncInterval = setInterval(performAutoSync, syncIntervalMs);
+}
+
 // Handle SIGINT
 process.on('SIGINT', () => {
     console.info("SIGINT Received, exiting...")
+    if (ldapSyncInterval) {
+        clearInterval(ldapSyncInterval);
+        console.info("LDAP Auto-Sync stopped")
+    }
     process.exit(0)
 })
 
 // Handle SIGTERM
 process.on('SIGTERM', () => {
     console.info("SIGTERM Received, exiting...")
+    if (ldapSyncInterval) {
+        clearInterval(ldapSyncInterval);
+        console.info("LDAP Auto-Sync stopped")
+    }
     process.exit(0)
 })
