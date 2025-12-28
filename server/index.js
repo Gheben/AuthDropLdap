@@ -72,10 +72,10 @@ if (process.env.LDAP_ENABLED === 'true' && process.env.LDAP_AUTO_SYNC === 'true'
             const result = await ldapSync.fullSync(null, false); // initiatedByUserId=null, dryRun=false
             if (result.success) {
                 console.log(`[${new Date().toISOString()}] Auto-sync completed successfully:`, {
-                    usersAdded: result.stats.usersImported,
+                    usersAdded: result.stats.usersAdded,
                     usersUpdated: result.stats.usersUpdated,
                     usersRemoved: result.stats.usersRemoved,
-                    groupsAdded: result.stats.groupsImported,
+                    groupsAdded: result.stats.groupsAdded,
                     groupsUpdated: result.stats.groupsUpdated,
                     groupsRemoved: result.stats.groupsRemoved
                 });
