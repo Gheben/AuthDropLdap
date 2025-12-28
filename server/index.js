@@ -49,6 +49,7 @@ const configBuilder = (conf) => {
 import AuthDropServer from "./server.js";
 import AuthDropWsServer from "./ws-server.js";
 import LDAPSync from "./ldap-sync.js";
+import database from "./database.js";
 
 const conf = configBuilder({});
 
@@ -67,16 +68,20 @@ if (process.env.LDAP_ENABLED === 'true' && process.env.LDAP_AUTO_SYNC === 'true'
     const performAutoSync = async () => {
         try {
             console.log(`[${new Date().toISOString()}] Starting automatic LDAP sync...`);
-            const ldapSync = new LDAPSync(server.app.locals.db);
-            const result = await ldapSync.fullSync(false); // dryRun = false
-            console.log(`[${new Date().toISOString()}] Auto-sync completed:`, {
-                usersImported: result.usersImported,
-                usersUpdated: result.usersUpdated,
-                usersRemoved: result.usersRemoved,
-                groupsImported: result.groupsImported,
-                groupsUpdated: result.groupsUpdated,
-                groupsRemoved: result.groupsRemoved
-            });
+            const ldapSync = new LDAPSync(database);
+            const result = await ldapSync.fullSync(null, false); // initiatedByUserId=null, dryRun=false
+            if (result.success) {
+                console.log(`[${new Date().toISOString()}] Auto-sync completed successfully:`, {
+                    usersAdded: result.stats.usersImported,
+                    usersUpdated: result.stats.usersUpdated,
+                    usersRemoved: result.stats.usersRemoved,
+                    groupsAdded: result.stats.groupsImported,
+                    groupsUpdated: result.stats.groupsUpdated,
+                    groupsRemoved: result.stats.groupsRemoved
+                });
+            } else {
+                console.error(`[${new Date().toISOString()}] Auto-sync failed:`, result.error);
+            }
         } catch (error) {
             console.error(`[${new Date().toISOString()}] Auto-sync error:`, error.message);
         }
