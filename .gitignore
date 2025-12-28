@@ -5,11 +5,17 @@ npm-debug.log*
 # Environment variables
 .env
 .env.local
+.env.docker
 
-# Database backups (don't commit old data)
-authdrop.db.backup
-authdrop.db.old
-authdrop-clean.db
+# Database files (NEVER commit database files with user data!)
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+authdrop.db*
+authdrop-*.db
+*.backup
+postgres-data/
 
 # OS files
 .DS_Store

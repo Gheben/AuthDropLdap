@@ -22,6 +22,8 @@
 
 **AuthDrop** is a web application for peer-to-peer file transfer that works directly in your browser, with no installation required.
 
+> 🔒 **Security Notice:** For new installations, please read [SECURITY.md](SECURITY.md) for important security guidelines and best practices.
+
 ## Features
 
 - 🔄 Peer-to-peer file transfer via WebRTC
@@ -76,18 +78,21 @@ Below are some screenshots of the AuthDrop dashboard:
 	cd AuthDrop
 	```
 2. **Configure environment**
-	- Copy `.env.example` to `.env` and edit with your PostgreSQL credentials:
+	- Copy `.env.example` to `.env` and edit with your settings:
 	  ```bash
 	  cp .env.example .env
-	  # Edit .env with your DB settings
+	  # Edit .env with your DB settings and credentials
 	  ```
-	- Example .env settings:
+	- **IMPORTANT:** Change the default passwords in `.env`:
 	  ```
+	  SUPER_ADMIN_USERNAME=admin
+	  SUPER_ADMIN_PASSWORD=YourSecurePassword123!
+	  
 	  DB_TYPE=postgres
 	  DB_HOST=localhost
 	  DB_PORT=5432
-	  DB_USER=youruser
-	  DB_PASSWORD=yourpassword
+	  DB_USER=authdrop
+	  DB_PASSWORD=YourDBPassword123!
 	  DB_NAME=authdrop
 	  ```
 3. **Install dependencies**
@@ -113,19 +118,26 @@ Below are some screenshots of the AuthDrop dashboard:
 	cd AuthDrop
 	```
 2. **Configure environment**
-	- Copy `.env.example` to `.env` and edit with your PostgreSQL credentials (or use `.env.docker` if provided):
+	- Copy `.env.example` to `.env` and customize the settings:
 	  ```bash
 	  cp .env.example .env
-	  # Edit .env with your DB settings
+	  # Edit .env with your credentials
 	  ```
-	- Example .env settings:
+	- **IMPORTANT:** Change the default passwords before starting:
 	  ```
+	  SUPER_ADMIN_USERNAME=admin
+	  SUPER_ADMIN_PASSWORD=YourSecurePassword123!
+	  
 	  DB_TYPE=postgres
-	  DB_HOST=localhost
+	  DB_HOST=postgres
 	  DB_PORT=5432
-	  DB_USER=youruser
-	  DB_PASSWORD=yourpassword
+	  DB_USER=authdrop
+	  DB_PASSWORD=YourDBPassword123!
 	  DB_NAME=authdrop
+	  
+	  POSTGRES_USER=authdrop
+	  POSTGRES_PASSWORD=YourDBPassword123!
+	  POSTGRES_DB=authdrop
 	  ```
 3. **Start with Docker Compose**
 	```bash
@@ -182,14 +194,21 @@ AuthDrop/
 ### Device Pairing
 You can permanently pair your devices by entering a shared room code, even if they are on different networks.
 
-### Reset Database
-To reset the database to a clean state (super admin only):
+### Reset Database to Clean State
+If you need to reset the database to a clean state with only the super admin user from `.env`:
 
+**For PostgreSQL:**
 ```bash
-node reset-database.js
+node reset-postgres.js
 ```
 
-This creates a new database with only the super admin user configured in `.env`.
+**For Docker Compose:**
+```bash
+docker compose down -v  # Remove all volumes (deletes all data!)
+docker compose up -d    # Recreate with fresh database
+```
+
+**Note:** These operations will **DELETE ALL DATA** including users, groups, logs, and sessions. The database will be recreated with only the super admin user defined in your `.env` file.
 
 ## FAQ
 
