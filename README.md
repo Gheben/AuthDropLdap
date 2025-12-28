@@ -78,25 +78,67 @@ Below are some screenshots of the AuthDrop dashboard:
 
 ## Installation
 
-### Prerequisites
+## Installation
 
-- Node.js >= 15.0.0
+### 1. Manual (npm)
+
+#### Prerequisites
+- Node.js >= 18.0.0
 - npm
+- PostgreSQL server (local or remote)
 
-### Instructions
+#### Steps
+1. **Clone the repository**
+	```bash
+	git clone https://github.com/Gheben/AuthDrop.git
+	cd AuthDrop
+	```
+2. **Configure environment**
+	- Copy `.env.example` to `.env` and edit with your PostgreSQL credentials:
+	  ```bash
+	  cp .env.example .env
+	  # Edit .env with your DB settings
+	  ```
+	- Example .env settings:
+	  ```
+	  DB_TYPE=postgres
+	  DB_HOST=localhost
+	  DB_PORT=5432
+	  DB_USER=youruser
+	  DB_PASSWORD=yourpassword
+	  DB_NAME=authdrop
+	  ```
+3. **Install dependencies**
+	```bash
+	npm install
+	```
+4. **Start the server**
+	```bash
+	npm start
+	```
+	The server will be available at `http://localhost:3441`
 
-```bash
-# Clone or download this repository
-cd AuthDrop
+### 2. Docker Compose
 
-# Install dependencies
-npm install
+#### Prerequisites
+- Docker & Docker Compose installed
 
-# Start the server
-npm start
-```
+#### Steps
+1. **Clone the repository**
+	```bash
+	git clone https://github.com/Gheben/AuthDrop.git
+	cd AuthDrop
+	```
+2. **Configure environment**
+	- Edit `.env` (or use provided `.env.docker` if available) for your desired settings.
+3. **Start with Docker Compose**
+	```bash
+	docker compose up -d
+	```
+	This will start both the Node.js server and a PostgreSQL database container.
+	The app will be available at `http://localhost:3441`
 
-The server will be available at `http://localhost:3441`
+---
 
 ## Development
 
@@ -107,14 +149,16 @@ npm run dev
 
 ## Deployment
 
-### With Docker
+## Deployment
+
+### With Docker (standalone)
 
 ```bash
-docker build -t AuthDrop .
-docker run -d --restart=unless-stopped --name=AuthDrop -p 127.0.0.1:3441:3441 AuthDrop
+docker build -t authdrop .
+docker run -d --restart=unless-stopped --name=authdrop -p 3441:3441 authdrop
 ```
 
-### With Node.js
+### With Node.js (production)
 
 ```bash
 npm run start:prod
