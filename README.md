@@ -33,6 +33,20 @@
 - 📴 Works offline after first visit
 - 🔐 Total privacy: files never pass through external servers
 
+
+## Dashboard Screenshots
+
+Below are some screenshots of the AuthDrop dashboard:
+
+### Main Dashboard
+![Main Dashboard](screenshot/2025-12-28%2013_22_48-.png)
+
+### Device List
+![Device List](screenshot/2025-12-28%2013_23_52-.png)
+
+### Group Management
+![Group Management](screenshot/2025-12-28%2013_27_16-.png)
+
 ## Technologies
 
 - **Frontend**: HTML5, CSS3, JavaScript ES6
