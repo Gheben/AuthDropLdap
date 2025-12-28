@@ -14,8 +14,10 @@ class LDAPSync {
             usersAdded: 0,
             usersUpdated: 0,
             usersDisabled: 0,
+            usersRemoved: 0,
             groupsAdded: 0,
             groupsUpdated: 0,
+            groupsRemoved: 0,
             errors: []
         };
     }
@@ -51,10 +53,13 @@ class LDAPSync {
             this.resetStats();
 
             // Sync groups first (to have group IDs for user membership)
-            await this.syncGroups(dryRun);
+            const syncedGroupGuids = await this.syncGroups(dryRun);
 
             // Then sync users
-            await this.syncUsers(dryRun);
+            const syncedUserGuids = await this.syncUsers(dryRun);
+
+            // Clean up orphaned LDAP users/groups that no longer exist in AD
+            await this.cleanupOrphans(syncedGroupGuids, syncedUserGuids, dryRun);
 
             // Update sync log
             if (!dryRun && syncLogId) {
@@ -81,18 +86,41 @@ class LDAPSync {
     }
 
     /**
-     * Sync groups from LDAP
+     * Sync groups from LDAP - exclude parent group, only sync subgroups
+     * @returns {Array} Array of GUIDs of synced groups
      */
     async syncGroups(dryRun = false) {
-        console.log('\n📁 Syncing groups from LDAP...');
+        console.log('\n📁 Syncing groups from LDAP (excluding parent group)...');
+
+        const syncedGuids = [];
 
         try {
-            const ldapGroups = await this.ldap.getGroups();
-            console.log(`   Found ${ldapGroups.length} groups in LDAP`);
+            const allLdapGroups = await this.ldap.getGroups();
+            console.log(`   Found ${allLdapGroups.length} total groups in LDAP`);
+
+            // Get parent group name from filter (extract from CN=...)
+            const groupFilter = process.env.LDAP_GROUP_SEARCH_FILTER || '';
+            const parentGroupMatch = groupFilter.match(/CN=([^,)]+)/);
+            const parentGroupName = parentGroupMatch ? parentGroupMatch[1] : null;
+
+            // Filter out parent group - only sync subgroups
+            const ldapGroups = allLdapGroups.filter(group => {
+                const isParent = parentGroupName && group.name === parentGroupName;
+                if (isParent) {
+                    console.log(`   ⚠️  Skipping parent group: ${group.name}`);
+                    return false;
+                }
+                return true;
+            });
+
+            console.log(`   Processing ${ldapGroups.length} subgroups...`);
 
             for (const ldapGroup of ldapGroups) {
                 try {
                     await this.syncGroup(ldapGroup, dryRun);
+                    if (ldapGroup.guid) {
+                        syncedGuids.push(ldapGroup.guid);
+                    }
                 } catch (error) {
                     console.error(`   ❌ Error syncing group ${ldapGroup.name}:`, error.message);
                     this.stats.errors.push(`Group ${ldapGroup.name}: ${error.message}`);
@@ -104,6 +132,8 @@ class LDAPSync {
             console.error('Error in syncGroups:', error);
             throw error;
         }
+
+        return syncedGuids;
     }
 
     /**
@@ -150,18 +180,104 @@ class LDAPSync {
     }
 
     /**
-     * Sync users from LDAP
+     * Sync users from LDAP - only users who are members of subgroups (not parent group)
+     * @returns {Array} Array of GUIDs of synced users
      */
     async syncUsers(dryRun = false) {
-        console.log('\n👥 Syncing users from LDAP...');
+        console.log('\n👥 Syncing users from LDAP (only subgroup members)...');
+
+        const syncedGuids = [];
 
         try {
-            const ldapUsers = await this.ldap.getUsers();
-            console.log(`   Found ${ldapUsers.length} users in LDAP`);
+            // Get all groups from LDAP
+            const allLdapGroups = await this.ldap.getGroups();
+            
+            // Get parent group name from filter
+            const groupFilter = process.env.LDAP_GROUP_SEARCH_FILTER || '';
+            const parentGroupMatch = groupFilter.match(/CN=([^,)]+)/);
+            const parentGroupName = parentGroupMatch ? parentGroupMatch[1] : null;
 
+            // Filter to get only subgroups (exclude parent)
+            const subgroups = allLdapGroups.filter(g => !parentGroupName || g.name !== parentGroupName);
+            console.log(`   Found ${subgroups.length} subgroups in LDAP`);
+
+            // Map to track user -> groups mapping for later assignment
+            const userGroupsMap = new Map(); // username -> [groupIds or group names for dry-run]
+            const uniqueUsers = new Map(); // username -> user object
+
+            for (const ldapGroup of subgroups) {
+                // Get group ID from database (or use group name for dry-run)
+                let groupIdentifier = null;
+                
+                if (!dryRun) {
+                    const dbGroupRows = await this.db.query(
+                        'SELECT id FROM groups WHERE ldap_dn = ? OR (name = ? AND is_ldap_group = TRUE)',
+                        [ldapGroup.dn, ldapGroup.name]
+                    );
+                    const dbGroup = dbGroupRows && dbGroupRows[0] ? dbGroupRows[0] : null;
+                    
+                    if (!dbGroup) {
+                        console.log(`   ⚠️  Group "${ldapGroup.name}" not found in database, skipping users`);
+                        continue;
+                    }
+                    groupIdentifier = dbGroup.id;
+                } else {
+                    // In dry-run, use group name as identifier
+                    groupIdentifier = ldapGroup.name;
+                }
+
+                if (ldapGroup.members && ldapGroup.members.length > 0) {
+                    console.log(`   📋 Subgroup "${ldapGroup.name}" has ${ldapGroup.members.length} members`);
+                    
+                    // Get user details for each member DN
+                    for (const memberDN of ldapGroup.members) {
+                        try {
+                            const user = await this.ldap.getUserByDN(memberDN);
+                            if (user) {
+                                // Add user to unique collection
+                                if (!uniqueUsers.has(user.username)) {
+                                    uniqueUsers.set(user.username, user);
+                                }
+                                
+                                // Track group membership
+                                if (!userGroupsMap.has(user.username)) {
+                                    userGroupsMap.set(user.username, []);
+                                }
+                                if (!userGroupsMap.get(user.username).includes(groupIdentifier)) {
+                                    userGroupsMap.get(user.username).push(groupIdentifier);
+                                }
+                            }
+                        } catch (error) {
+                            console.error(`   ⚠️  Could not fetch member: ${memberDN}`, error.message);
+                        }
+                    }
+                } else {
+                    console.log(`   ⚠️  Subgroup "${ldapGroup.name}" is empty (no user members)`);
+                }
+            }
+
+            const ldapUsers = Array.from(uniqueUsers.values());
+            console.log(`   Found ${ldapUsers.length} unique users across all subgroups`);
+
+            // Sync users and assign to groups
             for (const ldapUser of ldapUsers) {
                 try {
-                    await this.syncUser(ldapUser, dryRun);
+                    const userId = await this.syncUser(ldapUser, dryRun);
+                    
+                    // Track synced GUID
+                    if (ldapUser.guid) {
+                        syncedGuids.push(ldapUser.guid);
+                    }
+                    
+                    // Assign user to their groups
+                    if (userGroupsMap.has(ldapUser.username)) {
+                        const groups = userGroupsMap.get(ldapUser.username);
+                        if (dryRun) {
+                            console.log(`   👤 User "${ldapUser.username}" → Groups: [${groups.join(', ')}]`);
+                        } else if (userId) {
+                            await this.syncUserGroups(userId, groups, dryRun);
+                        }
+                    }
                 } catch (error) {
                     console.error(`   ❌ Error syncing user ${ldapUser.username}:`, error.message);
                     this.stats.errors.push(`User ${ldapUser.username}: ${error.message}`);
@@ -173,10 +289,12 @@ class LDAPSync {
             console.error('Error in syncUsers:', error);
             throw error;
         }
+
+        return syncedGuids;
     }
 
     /**
-     * Sync single user
+     * Sync single user - returns userId
      */
     async syncUser(ldapUser, dryRun = false) {
         // Check if user exists by GUID
@@ -201,9 +319,6 @@ class LDAPSync {
                      WHERE id = ?`,
                     [ldapUser.displayName, ldapUser.email, ldapUser.dn, ldapUser.guid, !ldapUser.isDisabled, existingUser.id]
                 );
-
-                // Sync group memberships
-                await this.syncUserGroups(existingUser.id, ldapUser.memberOf, dryRun);
             }
 
             if (ldapUser.isDisabled && existingUser.is_active) {
@@ -213,6 +328,8 @@ class LDAPSync {
                 this.stats.usersUpdated++;
                 console.log(`   🔄 Updated user: ${ldapUser.username}`);
             }
+            
+            return existingUser.id;
         } else {
             // Create new user
             // Generate random password (won't be used since LDAP auth will be used)
@@ -235,30 +352,33 @@ class LDAPSync {
                     userId = result.lastID;
                 }
 
-                if (userId) {
-                    // Sync group memberships
-                    await this.syncUserGroups(userId, ldapUser.memberOf, dryRun);
-                }
+                this.stats.usersAdded++;
+                console.log(`   ➕ Created user: ${ldapUser.username}`);
+                
+                return userId;
+            } else {
+                this.stats.usersAdded++;
+                console.log(`   ➕ Created user: ${ldapUser.username}`);
+                return null; // Dry run, no ID
             }
-
-            this.stats.usersAdded++;
-            console.log(`   ➕ Created user: ${ldapUser.username}`);
         }
     }
 
     /**
      * Sync user group memberships
+     * @param {number} userId - User ID
+     * @param {Array} groupIds - Array of group IDs or DNs (auto-detect)
      */
-    async syncUserGroups(userId, memberOfDNs, dryRun = false) {
-        if (!memberOfDNs || memberOfDNs.length === 0) return;
+    async syncUserGroups(userId, groupIds, dryRun = false) {
+        if (!groupIds || groupIds.length === 0) return;
 
-        for (const groupDN of memberOfDNs) {
-            // Find group by DN
-            const rows = await this.db.query('SELECT id FROM groups WHERE ldap_dn = ?', [groupDN]);
-            if (rows && rows[0]) {
-                const groupId = rows[0].id;
+        // Check if groupIds are numbers (IDs) or strings (DNs)
+        const firstItem = groupIds[0];
+        const isGroupIdArray = typeof firstItem === 'number';
 
-                // Add user to group if not already a member
+        if (isGroupIdArray) {
+            // Direct group IDs - just insert into group_members
+            for (const groupId of groupIds) {
                 if (!dryRun) {
                     if (this.db.dbType === 'postgres') {
                         await this.db.query(
@@ -273,6 +393,111 @@ class LDAPSync {
                     }
                 }
             }
+        } else {
+            // DNs - lookup groups first
+            for (const groupDN of groupIds) {
+                // Find group by DN
+                const rows = await this.db.query('SELECT id FROM groups WHERE ldap_dn = ?', [groupDN]);
+                if (rows && rows[0]) {
+                    const groupId = rows[0].id;
+
+                    // Add user to group if not already a member
+                    if (!dryRun) {
+                        if (this.db.dbType === 'postgres') {
+                            await this.db.query(
+                                'INSERT INTO group_members (user_id, group_id) VALUES (?, ?) ON CONFLICT (group_id, user_id) DO NOTHING',
+                                [userId, groupId]
+                            );
+                        } else {
+                            await this.db.query(
+                                'INSERT OR IGNORE INTO group_members (user_id, group_id) VALUES (?, ?)',
+                                [userId, groupId]
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Clean up orphaned LDAP users and groups that no longer exist in AD
+     */
+    async cleanupOrphans(syncedGroupGuids, syncedUserGuids, dryRun = false) {
+        console.log('\n🧹 Cleaning up orphaned LDAP records...');
+
+        try {
+            // Clean up orphaned groups
+            let orphanedGroupsCount = 0;
+            if (syncedGroupGuids.length > 0) {
+                const placeholders = syncedGroupGuids.map(() => '?').join(',');
+                const orphanedGroups = await this.db.query(
+                    `SELECT id, name FROM groups 
+                     WHERE is_ldap_group = TRUE 
+                     AND ldap_guid IS NOT NULL 
+                     AND ldap_guid NOT IN (${placeholders})`,
+                    syncedGroupGuids
+                );
+
+                if (orphanedGroups && orphanedGroups.length > 0) {
+                    console.log(`   Found ${orphanedGroups.length} orphaned LDAP groups`);
+                    
+                    for (const group of orphanedGroups) {
+                        if (!dryRun) {
+                            // Delete group members first (referential integrity)
+                            await this.db.query('DELETE FROM group_members WHERE group_id = ?', [group.id]);
+                            
+                            // Delete the group
+                            await this.db.query('DELETE FROM groups WHERE id = ?', [group.id]);
+                        }
+                        console.log(`   🗑️  Removed orphaned group: ${group.name}`);
+                        orphanedGroupsCount++;
+                    }
+                }
+            }
+
+            // Clean up orphaned users
+            let orphanedUsersCount = 0;
+            if (syncedUserGuids.length > 0) {
+                const placeholders = syncedUserGuids.map(() => '?').join(',');
+                const orphanedUsers = await this.db.query(
+                    `SELECT id, username FROM users 
+                     WHERE is_ldap_user = TRUE 
+                     AND ldap_guid IS NOT NULL 
+                     AND ldap_guid NOT IN (${placeholders})`,
+                    syncedUserGuids
+                );
+
+                if (orphanedUsers && orphanedUsers.length > 0) {
+                    console.log(`   Found ${orphanedUsers.length} orphaned LDAP users`);
+                    
+                    for (const user of orphanedUsers) {
+                        if (!dryRun) {
+                            // Delete user's group memberships first
+                            await this.db.query('DELETE FROM group_members WHERE user_id = ?', [user.id]);
+                            
+                            // Delete the user
+                            await this.db.query('DELETE FROM users WHERE id = ?', [user.id]);
+                        }
+                        console.log(`   🗑️  Removed orphaned user: ${user.username}`);
+                        orphanedUsersCount++;
+                    }
+                }
+            }
+
+            // Update stats
+            this.stats.groupsRemoved = orphanedGroupsCount;
+            this.stats.usersRemoved = orphanedUsersCount;
+
+            if (orphanedGroupsCount > 0 || orphanedUsersCount > 0) {
+                console.log(`   ✅ Cleanup completed: ${orphanedUsersCount} users, ${orphanedGroupsCount} groups removed`);
+            } else {
+                console.log(`   ✅ No orphaned records found`);
+            }
+
+        } catch (error) {
+            console.error('Error in cleanupOrphans:', error);
+            this.stats.errors.push(`Cleanup error: ${error.message}`);
         }
     }
 
@@ -301,8 +526,8 @@ class LDAPSync {
         await this.db.query(
             `UPDATE ldap_sync_logs 
              SET status = ?, completed_at = ?, 
-                 users_added = ?, users_updated = ?, users_disabled = ?,
-                 groups_added = ?, groups_updated = ?,
+                 users_added = ?, users_updated = ?, users_disabled = ?, users_removed = ?,
+                 groups_added = ?, groups_updated = ?, groups_removed = ?,
                  errors = ?
              WHERE id = ?`,
             [
@@ -311,8 +536,10 @@ class LDAPSync {
                 this.stats.usersAdded,
                 this.stats.usersUpdated,
                 this.stats.usersDisabled,
+                this.stats.usersRemoved || 0,
                 this.stats.groupsAdded,
                 this.stats.groupsUpdated,
+                this.stats.groupsRemoved || 0,
                 this.stats.errors.length > 0 ? this.stats.errors.join('\n') : null,
                 logId
             ]
@@ -327,8 +554,10 @@ class LDAPSync {
             usersAdded: 0,
             usersUpdated: 0,
             usersDisabled: 0,
+            usersRemoved: 0,
             groupsAdded: 0,
             groupsUpdated: 0,
+            groupsRemoved: 0,
             errors: []
         };
     }

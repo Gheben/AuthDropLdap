@@ -25,6 +25,12 @@ class LDAPConnector {
             }
         };
         
+        // Debug TLS configuration
+        console.log('🔐 LDAP TLS Configuration:', {
+            rejectUnauthorized: this.config.tlsOptions.rejectUnauthorized,
+            envValue: process.env.LDAP_TLS_REJECT_UNAUTHORIZED
+        });
+        
         this.client = null;
     }
 
@@ -35,7 +41,11 @@ class LDAPConnector {
         try {
             await this.connect();
             await this.disconnect();
-            return { success: true, message: 'Connection successful' };
+            return { 
+                success: true, 
+                message: 'Connection successful',
+                serverInfo: this.config.url
+            };
         } catch (error) {
             return { success: false, message: error.message };
         }
@@ -110,9 +120,10 @@ class LDAPConnector {
      */
     async getUsers(filter = null) {
         const searchFilter = filter || this.config.userSearchFilter;
+        const searchBase = this.config.userSearchBase || this.config.baseDN;
         
         try {
-            const results = await this.search(this.config.userSearchBase, {
+            const results = await this.search(searchBase, {
                 filter: searchFilter,
                 attributes: [
                     'distinguishedName',
@@ -144,6 +155,37 @@ class LDAPConnector {
         
         const users = await this.getUsers(filter);
         return users.length > 0 ? users[0] : null;
+    }
+
+    /**
+     * Get single user by Distinguished Name (DN)
+     */
+    async getUserByDN(dn) {
+        try {
+            const result = await this.search(dn, {
+                scope: 'base',
+                attributes: [
+                    'distinguishedName',
+                    'objectGUID',
+                    'sAMAccountName',
+                    'userPrincipalName',
+                    'displayName',
+                    'givenName',
+                    'sn',
+                    'mail',
+                    'memberOf',
+                    'userAccountControl'
+                ]
+            });
+
+            if (result && result.length > 0) {
+                return this.parseUser(result[0]);
+            }
+            return null;
+        } catch (error) {
+            console.error(`Error fetching user by DN (${dn}):`, error.message);
+            return null;
+        }
     }
 
     /**
@@ -188,9 +230,10 @@ class LDAPConnector {
      */
     async getGroups(filter = null) {
         const searchFilter = filter || this.config.groupSearchFilter;
+        const searchBase = this.config.groupSearchBase || this.config.baseDN;
         
         try {
-            const results = await this.search(this.config.groupSearchBase, {
+            const results = await this.search(searchBase, {
                 filter: searchFilter,
                 attributes: [
                     'distinguishedName',
@@ -243,10 +286,14 @@ class LDAPConnector {
             ? (parseInt(entry.userAccountControl) & 0x0002) !== 0 
             : false;
 
+        // Normalize username to lowercase for case-insensitive comparison
+        const rawUsername = entry.sAMAccountName || entry.uid;
+        const username = rawUsername ? rawUsername.toLowerCase() : null;
+
         return {
             dn: entry.distinguishedName || entry.dn,
             guid: guid,
-            username: entry.sAMAccountName || entry.uid,
+            username: username,
             email: entry.mail,
             displayName: entry.displayName || entry.cn,
             firstName: entry.givenName,

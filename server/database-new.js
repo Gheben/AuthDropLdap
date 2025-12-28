@@ -26,7 +26,7 @@ class Database {
         }
 
         async getAllUsers() {
-            return await this.query('SELECT id, username, display_name, email, is_admin, is_super_admin, is_active, created_at FROM users');
+            return await this.query('SELECT id, username, display_name, email, is_admin, is_super_admin, is_active, is_ldap_user, created_at FROM users');
         }
 
         async createUser(username, password, displayName = null, email = null, isAdmin = false) {
@@ -182,7 +182,9 @@ class Database {
             const groupIds = new Set(userGroups.map(g => g.id));
             for (const group of userGroups) {
                 const childGroups = await this.getChildGroups(group.id);
-                childGroups.forEach(g => groupIds.add(g.id));
+                if (Array.isArray(childGroups)) {
+                    childGroups.forEach(g => groupIds.add(g.id));
+                }
             }
             return Array.from(groupIds);
         }
@@ -598,6 +600,8 @@ class Database {
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         group_id INTEGER NOT NULL,
                         user_id INTEGER NOT NULL,
+                        is_group_admin BOOLEAN DEFAULT 0,
+                        joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                         added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
                         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,

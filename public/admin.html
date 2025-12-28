@@ -493,8 +493,8 @@
         <div class="tabs">
             <button class="tab active" onclick="switchTab('users')">👥 Utenti</button>
             <button class="tab" onclick="switchTab('groups')">📁 Gruppi</button>
-            <button class="tab" id="auditTab" style="display: none;" onclick="switchTab('audit')">📋 Audit Log</button>
             <button class="tab" id="ldapTab" style="display: none;" onclick="switchTab('ldap')">🔗 LDAP</button>
+            <button class="tab" id="auditTab" style="display: none;" onclick="switchTab('audit')">📋 Audit Log</button>
         </div>
 
         <!-- Users Tab -->
@@ -503,6 +503,14 @@
                 <div class="panel-header">
                     <h2>Gestione Utenti</h2>
                     <button class="btn btn-primary" onclick="showCreateUserModal()">+ Nuovo Utente</button>
+                </div>
+                
+                <!-- User Stats -->
+                <div id="userStats" style="margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div style="padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px; border: 1px solid rgba(76, 175, 80, 0.3);">
+                        <div style="font-size: 0.85rem; color: #81c784; margin-bottom: 5px;">Totale Utenti</div>
+                        <div style="font-size: 2rem; font-weight: 600; color: #f5f5f5;" id="totalUsersCount">0</div>
+                    </div>
                 </div>
                 
                 <div id="usersContent" class="loading">Caricamento utenti...</div>
@@ -515,6 +523,14 @@
                 <div class="panel-header">
                     <h2>Gestione Gruppi</h2>
                     <button class="btn btn-primary" onclick="showCreateGroupModal()">+ Nuovo Gruppo</button>
+                </div>
+                
+                <!-- Group Stats -->
+                <div id="groupStats" style="margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div style="padding: 15px; background: rgba(156, 39, 176, 0.1); border-radius: 8px; border: 1px solid rgba(156, 39, 176, 0.3);">
+                        <div style="font-size: 0.85rem; color: #ba68c8; margin-bottom: 5px;">Totale Gruppi</div>
+                        <div style="font-size: 2rem; font-weight: 600; color: #f5f5f5;" id="totalGroupsCount">0</div>
+                    </div>
                 </div>
                 
                 <div id="groupsContent" class="loading">Caricamento gruppi...</div>
@@ -802,6 +818,9 @@
                 const data = await response.json();
                 allUsers = data.users;
 
+                // Update total users counter
+                document.getElementById('totalUsersCount').textContent = allUsers.length;
+
                 renderUsers(allUsers);
             } catch (error) {
                 console.error('Load users error:', error);
@@ -836,7 +855,10 @@
                     <tbody>
                         ${users.map(user => `
                             <tr>
-                                <td><strong>${user.username}</strong></td>
+                                <td>
+                                    <strong>${user.username}</strong>
+                                    ${user.isLdapUser ? '<span title="Utente LDAP" style="margin-left: 5px; color: #64b5f6;">🔗</span>' : ''}
+                                </td>
                                 <td>${user.displayName || '-'}</td>
                                 <td>${user.email || '-'}</td>
                                 <td>
@@ -993,6 +1015,9 @@
                 const data = await response.json();
                 allGroups = data.groups;
 
+                // Update total groups counter
+                document.getElementById('totalGroupsCount').textContent = allGroups.length;
+
                 renderGroups(allGroups);
             } catch (error) {
                 console.error('Load groups error:', error);
@@ -1026,14 +1051,17 @@
                             const parentGroup = groups.find(g => g.id === group.parent_group_id);
                             return `
                                 <tr>
-                                    <td><strong>${group.name}</strong></td>
+                                    <td>
+                                        <strong>${group.name}</strong>
+                                        ${group.is_ldap_group ? '<span title="Gruppo LDAP" style="margin-left: 5px; color: #ffb74d;">🔗</span>' : ''}
+                                    </td>
                                     <td>${group.description || '-'}</td>
                                     <td>${parentGroup ? parentGroup.name : '-'}</td>
                                     <td>${new Date(group.created_at).toLocaleDateString('it-IT')}</td>
                                     <td>
                                         <div class="action-buttons">
-                                            <button class="btn btn-secondary btn-small" onclick="manageMembers(${group.id}, '${group.name}')">Membri</button>
-                                            <button class="btn btn-secondary btn-small" onclick="editGroup(${group.id})">Modifica</button>
+                                            <button class="btn btn-secondary btn-small" onclick="manageMembers(${group.id}, '${group.name}', ${group.is_ldap_group || false})">Membri</button>
+                                            ${!group.is_ldap_group ? `<button class="btn btn-secondary btn-small" onclick="editGroup(${group.id})">Modifica</button>` : ''}
                                             <button class="btn btn-danger btn-small" onclick="deleteGroup(${group.id}, '${group.name}')">Elimina</button>
                                         </div>
                                     </td>
@@ -1157,26 +1185,34 @@
 
         // ==================== GROUP MEMBERS ====================
 
-        async function manageMembers(groupId, groupName) {
+        async function manageMembers(groupId, groupName, isLdapGroup = false) {
             document.getElementById('membersModalTitle').textContent = `Membri: ${groupName}`;
             document.getElementById('currentGroupId').value = groupId;
             
-            // Populate user dropdown
-            const select = document.getElementById('addMemberSelect');
-            select.innerHTML = '<option value="">Seleziona utente...</option>';
-            allUsers.forEach(user => {
-                const option = document.createElement('option');
-                option.value = user.id;
-                option.textContent = `${user.displayName || user.username} (${user.username})`;
-                select.appendChild(option);
-            });
+            // Hide add member form for LDAP groups
+            const addMemberForm = document.querySelector('#membersModal .form-group');
+            if (addMemberForm) {
+                addMemberForm.style.display = isLdapGroup ? 'none' : 'block';
+            }
+            
+            // Populate user dropdown (only if not LDAP group)
+            if (!isLdapGroup) {
+                const select = document.getElementById('addMemberSelect');
+                select.innerHTML = '<option value="">Seleziona utente...</option>';
+                allUsers.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.id;
+                    option.textContent = `${user.displayName || user.username} (${user.username})`;
+                    select.appendChild(option);
+                });
+            }
 
             document.getElementById('membersModal').classList.add('show');
             
-            await loadGroupMembers(groupId);
+            await loadGroupMembers(groupId, isLdapGroup);
         }
 
-        async function loadGroupMembers(groupId) {
+        async function loadGroupMembers(groupId, isLdapGroup = false) {
             try {
                 const response = await fetch(`/api/groups/${groupId}/members`, {
                     credentials: 'include'
@@ -1185,7 +1221,7 @@
                 if (!response.ok) throw new Error('Failed to load members');
 
                 const data = await response.json();
-                renderGroupMembers(data.members, groupId);
+                renderGroupMembers(data.members, groupId, isLdapGroup);
             } catch (error) {
                 console.error('Load members error:', error);
                 document.getElementById('membersListContent').innerHTML = 
@@ -1193,7 +1229,7 @@
             }
         }
 
-        function renderGroupMembers(members, groupId) {
+        function renderGroupMembers(members, groupId, isLdapGroup = false) {
             const content = document.getElementById('membersListContent');
 
             if (members.length === 0) {
@@ -1208,7 +1244,7 @@
                             <th>Utente</th>
                             <th>Email</th>
                             <th>Aggiunto il</th>
-                            <th>Azioni</th>
+                            ${!isLdapGroup ? '<th>Azioni</th>' : ''}
                         </tr>
                     </thead>
                     <tbody>
@@ -1217,9 +1253,9 @@
                                 <td><strong>${member.display_name || member.username}</strong></td>
                                 <td>${member.email || '-'}</td>
                                 <td>${new Date(member.joined_at).toLocaleDateString('it-IT')}</td>
-                                <td>
+                                ${!isLdapGroup ? `<td>
                                     <button class="btn btn-danger btn-small" onclick="removeMember(${groupId}, ${member.id}, '${member.username}')">Rimuovi</button>
-                                </td>
+                                </td>` : ''}
                             </tr>
                         `).join('')}
                     </tbody>
@@ -1574,14 +1610,6 @@
                         <div style="font-size: 0.85rem; color: #ffb74d; margin-bottom: 5px;">Gruppi LDAP</div>
                         <div style="font-size: 2rem; font-weight: 600; color: #f5f5f5;">${stats.ldapGroups || 0}</div>
                     </div>
-                    <div style="padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px; border: 1px solid rgba(76, 175, 80, 0.3);">
-                        <div style="font-size: 0.85rem; color: #81c784; margin-bottom: 5px;">Totale Utenti</div>
-                        <div style="font-size: 2rem; font-weight: 600; color: #f5f5f5;">${stats.totalUsers || 0}</div>
-                    </div>
-                    <div style="padding: 15px; background: rgba(156, 39, 176, 0.1); border-radius: 8px; border: 1px solid rgba(156, 39, 176, 0.3);">
-                        <div style="font-size: 0.85rem; color: #ba68c8; margin-bottom: 5px;">Totale Gruppi</div>
-                        <div style="font-size: 2rem; font-weight: 600; color: #f5f5f5;">${stats.totalGroups || 0}</div>
-                    </div>
                 `;
             } catch (error) {
                 console.error('Load LDAP stats error:', error);
@@ -1591,7 +1619,6 @@
         async function testLDAPConnection() {
             try {
                 const response = await fetch('/api/ldap/test', { 
-                    method: 'POST',
                     credentials: 'include' 
                 });
                 
@@ -1615,12 +1642,13 @@
                 
                 const data = await response.json();
                 const users = data.users || [];
+                const subgroupCount = data.subgroupCount || 0;
                 
                 const usersList = users.map(u => 
-                    `- ${u.displayName || u.username} (${u.username}) - ${u.email || 'No email'}`
-                ).join('\n');
+                    `- ${u.displayName || u.username} (${u.username})\n  Email: ${u.email || 'N/A'}\n  Gruppi: ${u.groups && u.groups.length > 0 ? u.groups.join(', ') : 'N/A'}\n  Disabilitato: ${u.isDisabled ? 'Sì' : 'No'}`
+                ).join('\n\n');
                 
-                alert(`LDAP Users Preview (${users.length} utenti):\n\n${usersList || 'Nessun utente trovato'}`);
+                alert(`Anteprima Utenti LDAP\n\n📊 ${users.length} utenti da ${subgroupCount} sottogruppi\n\n${usersList || 'Nessun utente trovato'}`);
             } catch (error) {
                 console.error('Preview users error:', error);
                 alert('Errore durante l\'anteprima degli utenti LDAP');
@@ -1634,12 +1662,13 @@
                 
                 const data = await response.json();
                 const groups = data.groups || [];
+                const parentGroup = data.parentGroup || 'N/A';
                 
                 const groupsList = groups.map(g => 
-                    `- ${g.name} (${g.dn})`
-                ).join('\n');
+                    `- ${g.name}\n  Descrizione: ${g.description || 'N/A'}\n  Membri: ${g.memberCount}\n  DN: ${g.dn}`
+                ).join('\n\n');
                 
-                alert(`LDAP Groups Preview (${groups.length} gruppi):\n\n${groupsList || 'Nessun gruppo trovato'}`);
+                alert(`Anteprima Sottogruppi LDAP\n\n📊 ${groups.length} sottogruppi\n🔒 Gruppo padre escluso: ${parentGroup}\n\n${groupsList || 'Nessun gruppo trovato'}`);
             } catch (error) {
                 console.error('Preview groups error:', error);
                 alert('Errore durante l\'anteprima dei gruppi LDAP');
@@ -1720,10 +1749,21 @@
                             </tr>
                         </thead>
                         <tbody>
-                            ${history.map(h => `
+                            ${history.map(h => {
+                                const syncDate = h.started_at || h.completed_at || h.synced_at;
+                                const dateStr = syncDate ? new Date(syncDate).toLocaleString('it-IT') : 'N/A';
+                                const groupsAdded = h.groups_created || h.groups_added || 0;
+                                const groupsUpdated = h.groups_updated || 0;
+                                const usersAdded = h.users_created || h.users_added || 0;
+                                const usersUpdated = h.users_updated || 0;
+                                const membershipCreated = h.membership_created || h.memberships_created || 0;
+                                const duration = h.duration_ms ? `${h.duration_ms}ms` : (h.completed_at && h.started_at ? `${new Date(h.completed_at) - new Date(h.started_at)}ms` : 'N/A');
+                                const errorCount = h.error_count || (h.error_message ? 1 : 0);
+                                
+                                return `
                                 <tr>
                                     <td style="font-size: 0.85rem; color: #f5f5f5;">
-                                        ${new Date(h.synced_at).toLocaleString('it-IT')}
+                                        ${dateStr}
                                     </td>
                                     <td>
                                         <span class="badge ${h.sync_type === 'full' ? 'badge-info' : 'badge-warning'}">
@@ -1735,13 +1775,14 @@
                                             ${h.status === 'success' ? '✓ OK' : '✗ Errore'}
                                         </span>
                                     </td>
-                                    <td style="color: #64b5f6;">${h.groups_created}/${h.groups_updated}</td>
-                                    <td style="color: #81c784;">${h.users_created}/${h.users_updated}</td>
-                                    <td style="color: #ffb74d;">${h.membership_created || 0}</td>
-                                    <td style="color: #999;">${h.duration_ms}ms</td>
-                                    <td style="color: #e57373;">${h.errors || 0}</td>
+                                    <td style="color: #64b5f6;">${groupsAdded}/${groupsUpdated}</td>
+                                    <td style="color: #81c784;">${usersAdded}/${usersUpdated}</td>
+                                    <td style="color: #ffb74d;">${membershipCreated}</td>
+                                    <td style="color: #999;">${duration}</td>
+                                    <td style="color: #e57373;">${errorCount}</td>
                                 </tr>
-                            `).join('')}
+                            `;
+                            }).join('')}
                         </tbody>
                     </table>
                     </div>

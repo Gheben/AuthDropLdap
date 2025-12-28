@@ -25,6 +25,9 @@ router.post('/login', async (req, res) => {
             });
         }
 
+        // Normalize username to lowercase for case-insensitive login
+        const normalizedUsername = username.toLowerCase();
+
         let user = null;
         let isLDAPAuth = false;
 
@@ -32,13 +35,13 @@ router.post('/login', async (req, res) => {
         if (process.env.LDAP_ENABLED === 'true') {
             try {
                 const ldap = new LDAPConnector({});
-                const ldapAuth = await ldap.authenticateUser(username, password);
+                const ldapAuth = await ldap.authenticateUser(normalizedUsername, password);
                 
                 if (ldapAuth.success && ldapAuth.user) {
                     isLDAPAuth = true;
                     
                     // Check if user exists in local database
-                    user = await database.getUserByUsername(username);
+                    user = await database.getUserByUsername(normalizedUsername);
                     
                     if (!user) {
                         // Create user from LDAP
@@ -48,7 +51,7 @@ router.post('/login', async (req, res) => {
                         await ldapSync.ldap.disconnect();
                         
                         // Retrieve the newly created user
-                        user = await database.getUserByUsername(username);
+                        user = await database.getUserByUsername(normalizedUsername);
                     } else if (user.is_ldap_user) {
                         // Update LDAP user info on login
                         await database.query(
@@ -58,7 +61,7 @@ router.post('/login', async (req, res) => {
                             [ldapAuth.user.displayName, ldapAuth.user.email, user.id]
                         );
                         // Refresh user data
-                        user = await database.getUserByUsername(username);
+                        user = await database.getUserByUsername(normalizedUsername);
                     }
                 }
                 
@@ -297,6 +300,7 @@ router.get('/users', auth.requireAdmin, async (req, res) => {
                 isAdmin: user.is_admin,
                 isSuperAdmin: user.is_super_admin,
                 isActive: user.is_active,
+                isLdapUser: user.is_ldap_user || false,
                 createdAt: user.created_at,
                 updatedAt: user.updated_at,
                 deviceCount: pairedDevices.length,
