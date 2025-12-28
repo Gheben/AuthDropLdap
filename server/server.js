@@ -6,6 +6,8 @@ import { fileURLToPath } from 'url';
 import cookieParser from "cookie-parser";
 import database from "./database.js";
 import apiRoutes from "./api-routes.js";
+import ldapRoutes from "./ldap-routes.js";
+import auth from "./auth.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,6 +23,9 @@ export default class AuthDropServer {
             console.error('Failed to initialize database:', err);
             process.exit(1);
         });
+        
+        // Make database available to routes
+        app.locals.db = database;
 
         // Middleware
         app.use(express.json());
@@ -40,6 +45,9 @@ export default class AuthDropServer {
 
         // API routes
         app.use('/api', apiRoutes);
+        
+        // LDAP routes (super admin only)
+        app.use('/api/ldap', auth.requireSuperAdmin, ldapRoutes);
 
         // Serve static files
         const publicPath = path.join(__dirname, '..', 'public');

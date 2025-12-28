@@ -1,6 +1,8 @@
 import express from 'express';
 import database from './database.js';
 import auth from './auth.js';
+import LDAPConnector from './ldap-connector.js';
+import LDAPSync from './ldap-sync.js';
 
 const router = express.Router();
 
@@ -23,8 +25,54 @@ router.post('/login', async (req, res) => {
             });
         }
 
-        // Verify credentials
-        const user = await database.verifyPassword(username, password);
+        let user = null;
+        let isLDAPAuth = false;
+
+        // Try LDAP authentication first if enabled
+        if (process.env.LDAP_ENABLED === 'true') {
+            try {
+                const ldap = new LDAPConnector({});
+                const ldapAuth = await ldap.authenticateUser(username, password);
+                
+                if (ldapAuth.success && ldapAuth.user) {
+                    isLDAPAuth = true;
+                    
+                    // Check if user exists in local database
+                    user = await database.getUserByUsername(username);
+                    
+                    if (!user) {
+                        // Create user from LDAP
+                        const ldapSync = new LDAPSync(database);
+                        await ldapSync.initConnector();
+                        await ldapSync.syncUser(ldapAuth.user, false);
+                        await ldapSync.ldap.disconnect();
+                        
+                        // Retrieve the newly created user
+                        user = await database.getUserByUsername(username);
+                    } else if (user.is_ldap_user) {
+                        // Update LDAP user info on login
+                        await database.query(
+                            `UPDATE users 
+                             SET display_name = ?, email = ?, ldap_synced_at = CURRENT_TIMESTAMP
+                             WHERE id = ?`,
+                            [ldapAuth.user.displayName, ldapAuth.user.email, user.id]
+                        );
+                        // Refresh user data
+                        user = await database.getUserByUsername(username);
+                    }
+                }
+                
+                await ldap.disconnect();
+            } catch (ldapError) {
+                console.error('LDAP authentication error:', ldapError);
+                // Continue to local authentication on LDAP error
+            }
+        }
+
+        // Fallback to local database authentication if LDAP failed or is disabled
+        if (!user) {
+            user = await database.verifyPassword(username, password);
+        }
         
         if (!user) {
             return res.status(401).json({ 
@@ -54,7 +102,8 @@ router.post('/login', async (req, res) => {
         // Log successful login
         const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
         const userAgent = req.headers['user-agent'];
-        await database.logAction(user.id, user.username, 'login', null, null, 'Login effettuato con successo', ip, userAgent);
+        const loginMethod = isLDAPAuth ? 'LDAP' : 'Local';
+        await database.logAction(user.id, user.username, 'login', null, null, `Login effettuato con successo (${loginMethod})`, ip, userAgent);
 
         res.json({
             success: true,
@@ -65,7 +114,8 @@ router.post('/login', async (req, res) => {
                 displayName: user.display_name,
                 email: user.email,
                 isAdmin: user.is_admin,
-                isSuperAdmin: user.is_super_admin
+                isSuperAdmin: user.is_super_admin,
+                isLDAPUser: user.is_ldap_user || false
             }
         });
     } catch (error) {

@@ -199,6 +199,18 @@
             border: 1px solid rgba(211, 47, 47, 0.4);
         }
 
+        .badge-warning {
+            background: rgba(255, 152, 0, 0.2);
+            color: #ffb74d;
+            border: 1px solid rgba(255, 152, 0, 0.4);
+        }
+
+        .badge-info {
+            background: rgba(25, 118, 210, 0.2);
+            color: #64b5f6;
+            border: 1px solid rgba(25, 118, 210, 0.4);
+        }
+
         .badge-info {
             background: rgba(25, 118, 210, 0.2);
             color: #64b5f6;
@@ -482,6 +494,7 @@
             <button class="tab active" onclick="switchTab('users')">👥 Utenti</button>
             <button class="tab" onclick="switchTab('groups')">📁 Gruppi</button>
             <button class="tab" id="auditTab" style="display: none;" onclick="switchTab('audit')">📋 Audit Log</button>
+            <button class="tab" id="ldapTab" style="display: none;" onclick="switchTab('ldap')">🔗 LDAP</button>
         </div>
 
         <!-- Users Tab -->
@@ -522,6 +535,45 @@
                     <button class="btn btn-secondary" onclick="loadAuditLogs(currentAuditPage - 1)" id="prevAuditPage" disabled>← Precedente</button>
                     <span style="color: #999; line-height: 38px;" id="auditPageInfo">Pagina 1</span>
                     <button class="btn btn-secondary" onclick="loadAuditLogs(currentAuditPage + 1)" id="nextAuditPage">Successiva →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- LDAP Tab -->
+        <div id="ldap-tab" class="tab-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Gestione LDAP/Active Directory</h2>
+                    <button class="btn btn-primary" onclick="testLDAPConnection()">🔌 Test Connessione</button>
+                </div>
+
+                <!-- LDAP Config Info -->
+                <div id="ldapConfigInfo" style="margin-bottom: 20px; padding: 15px; background: rgba(10, 10, 10, 0.4); border-radius: 8px;">
+                    <div class="loading">Caricamento configurazione...</div>
+                </div>
+
+                <!-- LDAP Stats -->
+                <div id="ldapStats" style="margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                </div>
+
+                <!-- Sync Section -->
+                <div style="margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 15px; color: #f5f5f5;">Sincronizzazione</h3>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" onclick="previewLDAPUsers()">👥 Anteprima Utenti</button>
+                        <button class="btn btn-secondary" onclick="previewLDAPGroups()">📁 Anteprima Gruppi</button>
+                        <button class="btn btn-primary" onclick="syncLDAP(true)">🔍 Sync (Dry Run)</button>
+                        <button class="btn btn-primary" onclick="syncLDAP(false)">🔄 Sincronizza Ora</button>
+                    </div>
+                </div>
+
+                <!-- Sync History -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="color: #f5f5f5;">Storico Sincronizzazioni</h3>
+                        <button class="btn btn-secondary btn-small" onclick="loadLDAPHistory()">🔄 Aggiorna</button>
+                    </div>
+                    <div id="ldapHistoryContent" class="loading">Caricamento storico...</div>
                 </div>
             </div>
         </div>
@@ -678,9 +730,10 @@
 
                 document.getElementById('currentUser').textContent = `👤 ${currentUser.displayName || currentUser.username}`;
 
-                // Show audit tab if super admin
+                // Show audit tab and LDAP tab if super admin
                 if (currentUser.isSuperAdmin) {
                     document.getElementById('auditTab').style.display = 'block';
+                    document.getElementById('ldapTab').style.display = 'block';
                 }
 
                 // Load data
@@ -731,6 +784,8 @@
                 loadGroups();
             } else if (tab === 'audit') {
                 loadAuditLogs();
+            } else if (tab === 'ldap') {
+                loadLDAPConfig();
             }
         }
 
@@ -1455,6 +1510,250 @@
                 console.error('Load audit logs error:', error);
                 content.className = '';
                 content.innerHTML = '<div class="alert alert-error">Errore nel caricamento degli audit logs</div>';
+            }
+        }
+
+        // ==================== LDAP ====================
+
+        async function loadLDAPConfig() {
+            try {
+                const response = await fetch('/api/ldap/config', { credentials: 'include' });
+                if (!response.ok) throw new Error('Failed to load LDAP config');
+                
+                const config = await response.json();
+                const configDiv = document.getElementById('ldapConfigInfo');
+                
+                configDiv.innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                        <div>
+                            <strong style="color: #999;">LDAP Enabled:</strong>
+                            <span class="badge ${config.enabled ? 'badge-success' : 'badge-danger'}">
+                                ${config.enabled ? '✓ Abilitato' : '✗ Disabilitato'}
+                            </span>
+                        </div>
+                        <div>
+                            <strong style="color: #999;">LDAP URL:</strong>
+                            <span style="color: #f5f5f5;">${config.url || 'Non configurato'}</span>
+                        </div>
+                        <div>
+                            <strong style="color: #999;">Base DN:</strong>
+                            <span style="color: #f5f5f5;">${config.baseDN || 'Non configurato'}</span>
+                        </div>
+                        <div>
+                            <strong style="color: #999;">Auto Sync:</strong>
+                            <span class="badge ${config.autoSync ? 'badge-info' : 'badge-warning'}">
+                                ${config.autoSync ? 'Abilitato' : 'Disabilitato'}
+                            </span>
+                        </div>
+                    </div>
+                `;
+                
+                await loadLDAPStats();
+                await loadLDAPHistory();
+            } catch (error) {
+                console.error('Load LDAP config error:', error);
+                document.getElementById('ldapConfigInfo').innerHTML = 
+                    '<div class="alert alert-error">Errore nel caricamento della configurazione LDAP</div>';
+            }
+        }
+
+        async function loadLDAPStats() {
+            try {
+                const response = await fetch('/api/ldap/stats', { credentials: 'include' });
+                if (!response.ok) throw new Error('Failed to load LDAP stats');
+                
+                const stats = await response.json();
+                const statsDiv = document.getElementById('ldapStats');
+                
+                statsDiv.innerHTML = `
+                    <div style="padding: 15px; background: rgba(25, 118, 210, 0.1); border-radius: 8px; border: 1px solid rgba(25, 118, 210, 0.3);">
+                        <div style="font-size: 0.85rem; color: #64b5f6; margin-bottom: 5px;">Utenti LDAP</div>
+                        <div style="font-size: 2rem; font-weight: 600; color: #f5f5f5;">${stats.ldapUsers || 0}</div>
+                    </div>
+                    <div style="padding: 15px; background: rgba(255, 152, 0, 0.1); border-radius: 8px; border: 1px solid rgba(255, 152, 0, 0.3);">
+                        <div style="font-size: 0.85rem; color: #ffb74d; margin-bottom: 5px;">Gruppi LDAP</div>
+                        <div style="font-size: 2rem; font-weight: 600; color: #f5f5f5;">${stats.ldapGroups || 0}</div>
+                    </div>
+                    <div style="padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px; border: 1px solid rgba(76, 175, 80, 0.3);">
+                        <div style="font-size: 0.85rem; color: #81c784; margin-bottom: 5px;">Totale Utenti</div>
+                        <div style="font-size: 2rem; font-weight: 600; color: #f5f5f5;">${stats.totalUsers || 0}</div>
+                    </div>
+                    <div style="padding: 15px; background: rgba(156, 39, 176, 0.1); border-radius: 8px; border: 1px solid rgba(156, 39, 176, 0.3);">
+                        <div style="font-size: 0.85rem; color: #ba68c8; margin-bottom: 5px;">Totale Gruppi</div>
+                        <div style="font-size: 2rem; font-weight: 600; color: #f5f5f5;">${stats.totalGroups || 0}</div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Load LDAP stats error:', error);
+            }
+        }
+
+        async function testLDAPConnection() {
+            try {
+                const response = await fetch('/api/ldap/test', { 
+                    method: 'POST',
+                    credentials: 'include' 
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('✓ Connessione LDAP riuscita!\n\nServer: ' + (result.serverInfo || 'N/A'));
+                } else {
+                    alert('✗ Errore connessione LDAP:\n' + (result.error || 'Errore sconosciuto'));
+                }
+            } catch (error) {
+                console.error('Test LDAP error:', error);
+                alert('✗ Errore durante il test della connessione LDAP');
+            }
+        }
+
+        async function previewLDAPUsers() {
+            try {
+                const response = await fetch('/api/ldap/preview/users', { credentials: 'include' });
+                if (!response.ok) throw new Error('Failed to preview users');
+                
+                const data = await response.json();
+                const users = data.users || [];
+                
+                const usersList = users.map(u => 
+                    `- ${u.displayName || u.username} (${u.username}) - ${u.email || 'No email'}`
+                ).join('\n');
+                
+                alert(`LDAP Users Preview (${users.length} utenti):\n\n${usersList || 'Nessun utente trovato'}`);
+            } catch (error) {
+                console.error('Preview users error:', error);
+                alert('Errore durante l\'anteprima degli utenti LDAP');
+            }
+        }
+
+        async function previewLDAPGroups() {
+            try {
+                const response = await fetch('/api/ldap/preview/groups', { credentials: 'include' });
+                if (!response.ok) throw new Error('Failed to preview groups');
+                
+                const data = await response.json();
+                const groups = data.groups || [];
+                
+                const groupsList = groups.map(g => 
+                    `- ${g.name} (${g.dn})`
+                ).join('\n');
+                
+                alert(`LDAP Groups Preview (${groups.length} gruppi):\n\n${groupsList || 'Nessun gruppo trovato'}`);
+            } catch (error) {
+                console.error('Preview groups error:', error);
+                alert('Errore durante l\'anteprima dei gruppi LDAP');
+            }
+        }
+
+        async function syncLDAP(dryRun = true) {
+            const confirmMsg = dryRun 
+                ? 'Avviare una sincronizzazione di prova (dry-run)?\n\nNon verranno apportate modifiche al database.'
+                : 'Avviare la sincronizzazione LDAP?\n\nQuesta operazione importerà utenti e gruppi da Active Directory.';
+            
+            if (!confirm(confirmMsg)) return;
+            
+            try {
+                const response = await fetch('/api/ldap/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ dryRun })
+                });
+                
+                if (!response.ok) throw new Error('Sync failed');
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    const msg = `Sincronizzazione ${dryRun ? '(DRY RUN) ' : ''}completata!\n\n` +
+                        `Gruppi: ${result.stats.groupsCreated} creati, ${result.stats.groupsUpdated} aggiornati\n` +
+                        `Utenti: ${result.stats.usersCreated} creati, ${result.stats.usersUpdated} aggiornati\n` +
+                        `Membership: ${result.stats.membershipCreated} creati\n` +
+                        `Durata: ${result.stats.duration}ms`;
+                    
+                    alert(msg);
+                    
+                    if (!dryRun) {
+                        await loadLDAPStats();
+                        await loadLDAPHistory();
+                        await loadUsers();
+                        await loadGroups();
+                    }
+                } else {
+                    alert('Errore durante la sincronizzazione: ' + (result.error || 'Errore sconosciuto'));
+                }
+            } catch (error) {
+                console.error('Sync LDAP error:', error);
+                alert('Errore durante la sincronizzazione LDAP');
+            }
+        }
+
+        async function loadLDAPHistory() {
+            try {
+                const response = await fetch('/api/ldap/sync/history', { credentials: 'include' });
+                if (!response.ok) throw new Error('Failed to load history');
+                
+                const data = await response.json();
+                const history = data.history || [];
+                const content = document.getElementById('ldapHistoryContent');
+                
+                if (history.length === 0) {
+                    content.className = '';
+                    content.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">Nessuna sincronizzazione trovata</div>';
+                    return;
+                }
+                
+                const table = `
+                    <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Data/Ora</th>
+                                <th>Tipo</th>
+                                <th>Stato</th>
+                                <th>Gruppi</th>
+                                <th>Utenti</th>
+                                <th>Membership</th>
+                                <th>Durata</th>
+                                <th>Errori</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${history.map(h => `
+                                <tr>
+                                    <td style="font-size: 0.85rem; color: #f5f5f5;">
+                                        ${new Date(h.synced_at).toLocaleString('it-IT')}
+                                    </td>
+                                    <td>
+                                        <span class="badge ${h.sync_type === 'full' ? 'badge-info' : 'badge-warning'}">
+                                            ${h.sync_type === 'full' ? 'Full' : 'Dry Run'}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge ${h.status === 'success' ? 'badge-success' : 'badge-danger'}">
+                                            ${h.status === 'success' ? '✓ OK' : '✗ Errore'}
+                                        </span>
+                                    </td>
+                                    <td style="color: #64b5f6;">${h.groups_created}/${h.groups_updated}</td>
+                                    <td style="color: #81c784;">${h.users_created}/${h.users_updated}</td>
+                                    <td style="color: #ffb74d;">${h.membership_created || 0}</td>
+                                    <td style="color: #999;">${h.duration_ms}ms</td>
+                                    <td style="color: #e57373;">${h.errors || 0}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    </div>
+                `;
+                
+                content.className = '';
+                content.innerHTML = table;
+            } catch (error) {
+                console.error('Load LDAP history error:', error);
+                const content = document.getElementById('ldapHistoryContent');
+                content.className = '';
+                content.innerHTML = '<div class="alert alert-error">Errore nel caricamento dello storico</div>';
             }
         }
     </script>
