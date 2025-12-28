@@ -1,6 +1,8 @@
 
 # AuthDrop
 
+> **Note:** AuthDrop is an evolution of the project [PairDrop](https://github.com/schlagmichdoch/PairDrop), with integrated group management, advanced device pairing, audit logging, and many other enhancements for professional and organizational use.
+
 <div align="center">
 
 ![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)
