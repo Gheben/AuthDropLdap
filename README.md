@@ -102,6 +102,7 @@ Below are some screenshots of the AuthDrop dashboard:
 
 ### 2. Docker Compose
 
+
 #### Prerequisites
 - Docker & Docker Compose installed
 
@@ -112,7 +113,20 @@ Below are some screenshots of the AuthDrop dashboard:
 	cd AuthDrop
 	```
 2. **Configure environment**
-	- Edit `.env` (or use provided `.env.docker` if available) for your desired settings.
+	- Copy `.env.example` to `.env` and edit with your PostgreSQL credentials (or use `.env.docker` if provided):
+	  ```bash
+	  cp .env.example .env
+	  # Edit .env with your DB settings
+	  ```
+	- Example .env settings:
+	  ```
+	  DB_TYPE=postgres
+	  DB_HOST=localhost
+	  DB_PORT=5432
+	  DB_USER=youruser
+	  DB_PASSWORD=yourpassword
+	  DB_NAME=authdrop
+	  ```
 3. **Start with Docker Compose**
 	```bash
 	docker compose up -d
