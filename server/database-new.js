@@ -444,34 +444,100 @@ class Database {
         try {
             await client.query('BEGIN');
 
-            // Users table
-            await client.query(`
-                CREATE TABLE IF NOT EXISTS users (
-                    id SERIAL PRIMARY KEY,
-                    username TEXT UNIQUE NOT NULL,
-                    password_hash TEXT NOT NULL,
-                    display_name TEXT,
-                    email TEXT,
-                    is_admin BOOLEAN DEFAULT FALSE,
-                    is_super_admin BOOLEAN DEFAULT FALSE,
-                    is_active BOOLEAN DEFAULT TRUE,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            // Check if users table exists
+            const usersTableExists = await client.query(`
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_schema = 'public' 
+                    AND table_name = 'users'
                 )
             `);
 
-            // Groups table
-            await client.query(`
-                CREATE TABLE IF NOT EXISTS groups (
-                    id SERIAL PRIMARY KEY,
-                    name TEXT UNIQUE NOT NULL,
-                    description TEXT,
-                    parent_group_id INTEGER,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (parent_group_id) REFERENCES groups(id) ON DELETE SET NULL
+            if (!usersTableExists.rows[0].exists) {
+                // Users table
+                await client.query(`
+                    CREATE TABLE users (
+                        id SERIAL PRIMARY KEY,
+                        username TEXT UNIQUE NOT NULL,
+                        password_hash TEXT NOT NULL,
+                        display_name TEXT,
+                        email TEXT,
+                        is_admin BOOLEAN DEFAULT FALSE,
+                        is_super_admin BOOLEAN DEFAULT FALSE,
+                        is_active BOOLEAN DEFAULT TRUE,
+                        is_ldap_user BOOLEAN DEFAULT FALSE,
+                        ldap_guid TEXT,
+                        ldap_dn TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                `);
+            } else {
+                // Add LDAP columns if they don't exist
+                await client.query(`
+                    DO $$ 
+                    BEGIN
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                      WHERE table_name='users' AND column_name='is_ldap_user') THEN
+                            ALTER TABLE users ADD COLUMN is_ldap_user BOOLEAN DEFAULT FALSE;
+                        END IF;
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                      WHERE table_name='users' AND column_name='ldap_guid') THEN
+                            ALTER TABLE users ADD COLUMN ldap_guid TEXT;
+                        END IF;
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                      WHERE table_name='users' AND column_name='ldap_dn') THEN
+                            ALTER TABLE users ADD COLUMN ldap_dn TEXT;
+                        END IF;
+                    END $$;
+                `);
+            }
+
+            // Check if groups table exists
+            const groupsTableExists = await client.query(`
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_schema = 'public' 
+                    AND table_name = 'groups'
                 )
             `);
+
+            if (!groupsTableExists.rows[0].exists) {
+                // Groups table
+                await client.query(`
+                    CREATE TABLE groups (
+                        id SERIAL PRIMARY KEY,
+                        name TEXT UNIQUE NOT NULL,
+                        description TEXT,
+                        parent_group_id INTEGER,
+                        is_ldap_group BOOLEAN DEFAULT FALSE,
+                        ldap_guid TEXT,
+                        ldap_dn TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (parent_group_id) REFERENCES groups(id) ON DELETE SET NULL
+                    )
+                `);
+            } else {
+                // Add LDAP columns if they don't exist
+                await client.query(`
+                    DO $$ 
+                    BEGIN
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                      WHERE table_name='groups' AND column_name='is_ldap_group') THEN
+                            ALTER TABLE groups ADD COLUMN is_ldap_group BOOLEAN DEFAULT FALSE;
+                        END IF;
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                      WHERE table_name='groups' AND column_name='ldap_guid') THEN
+                            ALTER TABLE groups ADD COLUMN ldap_guid TEXT;
+                        END IF;
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                      WHERE table_name='groups' AND column_name='ldap_dn') THEN
+                            ALTER TABLE groups ADD COLUMN ldap_dn TEXT;
+                        END IF;
+                    END $$;
+                `);
+            }
 
 
             // Group members table (allineato a SQLite)
@@ -545,6 +611,26 @@ class Database {
                     user_agent TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+                )
+            `);
+
+            // LDAP sync logs table
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS ldap_sync_logs (
+                    id SERIAL PRIMARY KEY,
+                    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    completed_at TIMESTAMP,
+                    status TEXT,
+                    users_added INTEGER DEFAULT 0,
+                    users_updated INTEGER DEFAULT 0,
+                    users_disabled INTEGER DEFAULT 0,
+                    users_removed INTEGER DEFAULT 0,
+                    groups_added INTEGER DEFAULT 0,
+                    groups_updated INTEGER DEFAULT 0,
+                    groups_removed INTEGER DEFAULT 0,
+                    error_message TEXT,
+                    initiated_by INTEGER,
+                    FOREIGN KEY (initiated_by) REFERENCES users(id) ON DELETE SET NULL
                 )
             `);
 
