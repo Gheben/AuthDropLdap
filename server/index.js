@@ -71,19 +71,61 @@ if (process.env.LDAP_ENABLED === 'true' && process.env.LDAP_AUTO_SYNC === 'true'
             const ldapSync = new LDAPSync(database);
             const result = await ldapSync.fullSync(null, false); // initiatedByUserId=null, dryRun=false
             if (result.success) {
+                const stats = result.stats;
                 console.log(`[${new Date().toISOString()}] Auto-sync completed successfully:`, {
-                    usersAdded: result.stats.usersAdded,
-                    usersUpdated: result.stats.usersUpdated,
-                    usersRemoved: result.stats.usersRemoved,
-                    groupsAdded: result.stats.groupsAdded,
-                    groupsUpdated: result.stats.groupsUpdated,
-                    groupsRemoved: result.stats.groupsRemoved
+                    usersAdded: stats.usersAdded,
+                    usersUpdated: stats.usersUpdated,
+                    usersRemoved: stats.usersRemoved,
+                    groupsAdded: stats.groupsAdded,
+                    groupsUpdated: stats.groupsUpdated,
+                    groupsRemoved: stats.groupsRemoved
                 });
+                
+                // Log to audit log
+                const details = `Auto-sync completato: ${stats.usersAdded} utenti aggiunti, ${stats.usersUpdated} aggiornati, ${stats.usersRemoved} rimossi | ${stats.groupsAdded} gruppi aggiunti, ${stats.groupsUpdated} aggiornati, ${stats.groupsRemoved} rimossi`;
+                await database.logAction(
+                    null, // system action
+                    'SYSTEM',
+                    'ldap_auto_sync',
+                    'ldap',
+                    null,
+                    details,
+                    'localhost',
+                    'LDAP Auto-Sync'
+                );
             } else {
                 console.error(`[${new Date().toISOString()}] Auto-sync failed:`, result.error);
+                
+                // Log error to audit log
+                await database.logAction(
+                    null,
+                    'SYSTEM',
+                    'ldap_auto_sync_error',
+                    'ldap',
+                    null,
+                    `Auto-sync fallito: ${result.error}`,
+                    'localhost',
+                    'LDAP Auto-Sync'
+                );
             }
         } catch (error) {
             console.error(`[${new Date().toISOString()}] Auto-sync error:`, error.message);
+            
+            // Log error to audit log
+            try {
+                await database.logAction(
+                    null,
+                    'SYSTEM',
+                    'ldap_auto_sync_error',
+                    'ldap',
+                    null,
+                    `Auto-sync error: ${error.message}`,
+                    'localhost',
+                    'LDAP Auto-Sync'
+                );
+            } catch (logError) {
+                console.error('Failed to log auto-sync error to audit:', logError.message);
+            }
         }
     };
     
