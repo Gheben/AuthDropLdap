@@ -1,23 +1,3 @@
-# Quick Start
-
-## Clone the Repository
-
-```bash
-git clone https://github.com/Gheben/AuthDrop.git
-cd AuthDrop
-```
-
-## Install and Run
-
-```bash
-# Install dependencies
-npm install
-
-# Start the server
-npm start
-```
-
-The server will be available at `http://localhost:3441`
 
 # AuthDrop
 
