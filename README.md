@@ -149,8 +149,9 @@ Below are some screenshots of the AuthDrop dashboard:
 	- Login with your super admin credentials from `.env`
 	- Start managing users and groups!
 
-### 2. Docker Compose
+### 2. Docker Compose (Recommended for Production)
 
+> **Note:** Docker deployment uses **PostgreSQL by default** for better performance and production reliability. The database type is hardcoded in `docker-compose.yml` and cannot be changed to SQLite.
 
 #### Prerequisites
 - Docker & Docker Compose installed
@@ -158,8 +159,8 @@ Below are some screenshots of the AuthDrop dashboard:
 #### Steps
 1. **Clone the repository**
 	```bash
-	git clone https://github.com/Gheben/AuthDrop.git
-	cd AuthDrop
+	git clone https://github.com/Gheben/AuthDropLdap.git
+	cd AuthDropLdap
 	```
 2. **Configure environment**
 	- Copy `.env.example` to `.env` and customize the settings:
@@ -168,27 +169,35 @@ Below are some screenshots of the AuthDrop dashboard:
 	  # Edit .env with your credentials
 	  ```
 	- **IMPORTANT:** Change the default passwords before starting:
-	  ```
+	  ```env
 	  SUPER_ADMIN_USERNAME=admin
 	  SUPER_ADMIN_PASSWORD=YourSecurePassword123!
 	  
-	  DB_TYPE=postgres
-	  DB_HOST=postgres
-	  DB_PORT=5432
-	  DB_USER=authdrop
-	  DB_PASSWORD=YourDBPassword123!
-	  DB_NAME=authdrop
-	  
+	  # PostgreSQL Database (used automatically by Docker)
 	  POSTGRES_USER=authdrop
 	  POSTGRES_PASSWORD=YourDBPassword123!
 	  POSTGRES_DB=authdrop
 	  ```
+	  
+	  **Note:** In Docker, `DB_TYPE` is automatically set to `postgres` in `docker-compose.yml`. The PostgreSQL container is always created regardless of your `.env` settings.
+
 3. **Start with Docker Compose**
 	```bash
 	docker compose up -d
 	```
-	This will start both the Node.js server and a PostgreSQL database container.
+	This will start:
+	- **authdrop-postgres**: PostgreSQL 16 database container (internal network only)
+	- **authdrop**: Node.js application container (exposed on port 3441)
+	
 	The app will be available at `http://localhost:3441`
+
+4. **Database Persistence**
+	- PostgreSQL data is stored in Docker volume `postgres-data`
+	- To completely reset the database:
+	  ```bash
+	  docker compose down -v  # Removes all data!
+	  docker compose up -d    # Fresh start
+	  ```
 
 ---
 
@@ -429,8 +438,14 @@ All modern browsers: Chrome, Edge, Firefox, Safari, Opera.
 Yes, by using the pairing feature with a shared room code.
 
 **SQLite or PostgreSQL - which one should I use?**
-- **SQLite**: Perfect for development, testing, and small deployments (< 50 users). Zero configuration required - just set `DB_TYPE=sqlite` and you're done!
-- **PostgreSQL**: Recommended for production environments with many users, better performance, concurrent access, and enterprise features.
+- **SQLite**: Perfect for development, testing, and small deployments (< 50 users). Zero configuration required - just set `DB_TYPE=sqlite` in `.env` and you're done! Use this for **local/manual installations**.
+- **PostgreSQL**: Recommended for production environments with many users, better performance, concurrent access, and enterprise features. **Automatically used in Docker deployments**.
+
+**Does Docker always use PostgreSQL?**
+Yes. The `docker-compose.yml` file has PostgreSQL hardcoded for production reliability. The `authdrop-postgres` container is created automatically when you run `docker compose up`, regardless of `.env` settings. This ensures optimal performance and scalability for containerized deployments.
+
+**Can I use SQLite with Docker?**
+No. Docker deployments are designed for production use with PostgreSQL. If you need SQLite, use the manual npm installation method instead.
 
 **Can I switch from SQLite to PostgreSQL later?**
 Yes! Both databases use the exact same schema. To migrate:
