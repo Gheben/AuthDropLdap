@@ -1,7 +1,7 @@
 
 # AuthDrop
 
-> **Note:** AuthDrop is an evolution of the project [PairDrop](https://github.com/schlagmichdoch/PairDrop), with integrated group management, advanced device pairing, audit logging, and many other enhancements for professional and organizational use.
+> **Note:** AuthDrop is an evolution of the project [PairDrop](https://github.com/schlagmichdoch/PairDrop), with integrated group management, advanced device pairing, audit logging, and many other enhancements for professional and organizational use. This **LDAP/Enterprise Edition** adds full Active Directory integration, hierarchical group management, and enterprise-grade security features.
 
 <div align="center">
 
@@ -51,7 +51,7 @@ Below are some screenshots of the AuthDrop dashboard:
 
 
 ### Group Management
-![Group Management](screenshot/2025-12-28%2013_23_52-.png)
+![Group Management](screenshot/2025-12-28%2013_23_52-.png?v=2)
 
 ### Device List
 ![Device List](screenshot/2025-12-28%2013_27_16-.png)
