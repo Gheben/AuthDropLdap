@@ -199,6 +199,23 @@ Below are some screenshots of the AuthDrop dashboard:
 	  docker compose up -d    # Fresh start
 	  ```
 
+5. **Environment Variables in Docker**
+	
+	Docker reads credentials from your `.env` file:
+	
+	**Used by Docker:**
+	- `SUPER_ADMIN_USERNAME` / `SUPER_ADMIN_PASSWORD` - Admin credentials
+	- `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` - Database credentials
+	- `LDAP_*` - All LDAP settings (if enabled)
+	- `PORT` - Application port (default: 3441)
+	
+	**Ignored by Docker (hardcoded in docker-compose.yml):**
+	- `DB_TYPE` - Always `postgres` in Docker
+	- `DB_HOST` - Always `postgres` (container name)
+	- `DB_PORT` - Always `5432`
+	
+	**Important:** `DB_NAME`, `DB_USER`, `DB_PASSWORD` should match `POSTGRES_*` values for consistency.
+
 ---
 
 ## Development
