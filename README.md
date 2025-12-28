@@ -43,10 +43,10 @@ Below are some screenshots of the AuthDrop dashboard:
 
 
 ### Group Management
-![Group Management](screenshot/2025-12-28%2013_27_16-.png)
+![Group Management](screenshot/2025-12-28%2013_23_52-.png)
 
 ### Device List
-![Device List](screenshot/2025-12-28%2013_23_52-.png)
+![Device List](screenshot/2025-12-28%2013_27_16-.png)
 
 ## Technologies
 
