@@ -1,3 +1,4 @@
+
 # AuthDrop
 
 <div align="center">
@@ -9,7 +10,7 @@
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20|%20Linux%20|%20macOS-lightgrey.svg)
 
-**Un'applicazione web moderna per il trasferimento di file peer-to-peer direttamente nel browser**
+**A modern web application for peer-to-peer file transfer directly in your browser**
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Support%20-yellow.svg?logo=buy-me-a-coffee&logoColor=white)](https://buymeacoffee.com/guidoballau)
 
@@ -17,121 +18,122 @@
 
 ---
 
-**AuthDrop** è un'applicazione web per il trasferimento di file peer-to-peer che funziona direttamente nel browser, senza bisogno di installazione.
+**AuthDrop** is a web application for peer-to-peer file transfer that works directly in your browser, with no installation required.
 
-## Caratteristiche
+## Features
 
-- 🔄 Trasferimento file peer-to-peer via WebRTC
-- 🌐 Funziona completamente nel browser (PWA)
-- 🔒 Connessione diretta e sicura tra dispositivi
-- 📱 Supporto multi-piattaforma (Windows, Mac, Linux, iOS, Android)
-- 💾 Nessun limite di dimensione file
-- 🚀 Velocità di trasferimento limitata solo dalla tua rete
-- 🌍 Supporto per 35+ lingue
-- 🎨 Tema chiaro e scuro automatico
-- 📴 Funziona offline dopo la prima visita
-- 🔐 Privacy totale: i file non passano mai da server esterni
+- 🔄 Peer-to-peer file transfer via WebRTC
+- 🌐 Fully browser-based (PWA)
+- 🔒 Direct and secure device-to-device connection
+- 📱 Multi-platform support (Windows, Mac, Linux, iOS, Android)
+- 💾 No file size limits
+- 🚀 Transfer speed limited only by your network
+- 🌍 35+ languages supported
+- 🎨 Automatic light/dark theme
+- 📴 Works offline after first visit
+- 🔐 Total privacy: files never pass through external servers
 
-## Tecnologie
+## Technologies
 
 - **Frontend**: HTML5, CSS3, JavaScript ES6
-- **Backend**: Node.js con Express
-- **Comunicazione**: WebRTC e WebSockets
+- **Backend**: Node.js with Express
+- **Communication**: WebRTC and WebSockets
 - **PWA**: Progressive Web App
 
-## Installazione
 
-### Prerequisiti
+## Installation
+
+### Prerequisites
 
 - Node.js >= 15.0.0
 - npm
 
-### Istruzioni
+### Instructions
 
 ```bash
-# Clona o scarica questo repository
+# Clone or download this repository
 cd AuthDrop
 
-# Installa le dipendenze
+# Install dependencies
 npm install
 
-# Avvia il server
+# Start the server
 npm start
 ```
 
-Il server sarà disponibile su `http://localhost:3441`
+The server will be available at `http://localhost:3441`
 
-## Sviluppo
+## Development
 
 ```bash
-# Modalità sviluppo
+# Development mode
 npm run dev
 ```
 
 ## Deployment
 
-### Con Docker
+### With Docker
 
 ```bash
 docker build -t AuthDrop .
 docker run -d --restart=unless-stopped --name=AuthDrop -p 127.0.0.1:3441:3441 AuthDrop
 ```
 
-### Con Node.js
+### With Node.js
 
 ```bash
 npm run start:prod
 ```
 
-## Struttura del Progetto
+## Project Structure
 
 ```
 AuthDrop/
-├── public/           # File frontend (HTML, CSS, JS, immagini)
-├── server/           # Backend Node.js
-├── package.json      # Configurazione npm
-└── README.md        # Questo file
+├── public/           # Frontend files (HTML, CSS, JS, images)
+├── server/           # Node.js backend
+├── package.json      # npm configuration
+└── README.md         # This file
 ```
 
-## Come Funziona
+## How It Works
 
-1. Apri AuthDrop nel browser su tutti i dispositivi che vuoi connettere
-2. I dispositivi sulla stessa rete locale si rilevano automaticamente
-3. Clicca sul dispositivo di destinazione e seleziona i file da inviare
-4. Il trasferimento avviene direttamente tra i dispositivi (P2P)
+1. Open AuthDrop in the browser on all devices you want to connect
+2. Devices on the same local network will automatically discover each other
+3. Click on the target device and select the files to send
+4. The transfer happens directly between devices (P2P)
 
-## Funzionalità Avanzate
+## Advanced Features
 
-### Accoppiamento Dispositivi
-Puoi accoppiare permanentemente i tuoi dispositivi inserendo una stanza condivisa, anche se sono su reti diverse.
+### Device Pairing
+You can permanently pair your devices by entering a shared room code, even if they are on different networks.
 
 ### Reset Database
-Per resettare il database a uno stato pulito (solo super admin):
+To reset the database to a clean state (super admin only):
 
 ```bash
 node reset-database.js
 ```
 
-Questo crea un nuovo database con solo l'utente super admin configurato in `.env`.
+This creates a new database with only the super admin user configured in `.env`.
 
 ## FAQ
 
-**È sicuro?**  
-Sì, i file vengono trasferiti direttamente tra i tuoi dispositivi usando WebRTC. Non passano da server esterni.
+**Is it secure?**  
+Yes, files are transferred directly between your devices using WebRTC. They never pass through external servers.
 
-**Funziona senza internet?**  
-Sì, sulla rete locale funziona anche offline. Serve internet solo per il server di signaling iniziale.
+**Does it work without internet?**  
+Yes, on the local network it works offline. Internet is only needed for the initial signaling server.
 
-**Quali browser supporta?**  
-Tutti i browser moderni: Chrome, Edge, Firefox, Safari, Opera.
+**Which browsers are supported?**  
+All modern browsers: Chrome, Edge, Firefox, Safari, Opera.
 
-**Posso usarlo con dispositivi su reti diverse?**  
-Sì, usando la funzione di accoppiamento con codice stanza condiviso.
+**Can I use it with devices on different networks?**  
+Yes, by using the pairing feature with a shared room code.
 
-## Autore
+## Author
 
 Guido Ballarini - [git.ballarini.app](https://git.ballarini.app/guido/AuthDrop)
 
-## Licenza
+## License
 
 GPL-3.0
